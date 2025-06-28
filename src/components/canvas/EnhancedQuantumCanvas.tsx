@@ -823,7 +823,7 @@ export const EnhancedQuantumCanvas: React.FC<EnhancedQuantumCanvasProps> = ({
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="absolute top-4 left-4 right-4 z-50"
+        className="absolute top-4 left-4 right-4 z-50 pointer-events-auto"
       >
         <GlassCard variant="medium" className="p-4">
           <div className="flex items-center justify-between">
