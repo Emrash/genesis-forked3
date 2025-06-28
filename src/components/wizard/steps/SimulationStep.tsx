@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Play, CheckCircle, AlertCircle, ArrowRight, Brain, Zap, Clock, Settings, Cpu, Beaker } from 'lucide-react';
 import { useWizardStore } from '../../../stores/wizardStore';
 import { GlassCard } from '../../ui/GlassCard';
@@ -6,6 +6,7 @@ import { EnhancedSimulationLab } from '../../simulation/EnhancedSimulationLab';
 import { HolographicButton } from '../../ui/HolographicButton';
 import { SimulationLab } from '../../simulation/SimulationLab';
 import { AIModelSelector } from '../../ui/AIModelSelector';
+import { Card, CardContent } from '../../ui/Card';
 
 export const SimulationStep: React.FC = () => {
   const { 

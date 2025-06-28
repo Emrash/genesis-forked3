@@ -525,12 +525,12 @@ export const EnhancedCanvasStep: React.FC = () => {
           <div className="h-[700px] rounded-xl overflow-hidden relative">
             {activeView === 'canvas' && (
               <EnhancedQuantumCanvas 
-                blueprint={blueprint}
-                onSave={handleSaveCanvas}
-                onExecute={handleExecuteWorkflow}
-                initialNodes={workflowNodes}
-                initialEdges={workflowEdges}
-                onNodeSelect={(nodeId) => setSelectedAgent(nodeId)}
+              blueprint={blueprint}
+              onSave={handleSaveCanvas}
+              onExecute={handleExecuteWorkflow}
+              initialNodes={workflowNodes}
+              initialEdges={workflowEdges}
+              onNodeSelect={(nodeId: string) => setSelectedAgent(nodeId)}
               />
             )}
             
@@ -554,7 +554,7 @@ export const EnhancedCanvasStep: React.FC = () => {
             {activeView === 'debugging' && selectedAgent && (
               <AgentDebugConsole
                 agentId={selectedAgent}
-                agentName={workflowNodes.find(node => node.id === selectedAgent)?.data?.label || 'Selected Agent'}
+                agentName={String(workflowNodes.find(node => node.id === selectedAgent)?.data?.label ?? 'Selected Agent')}
                 onClose={() => setActiveView('canvas')}
               />
             )}

@@ -22,8 +22,8 @@ export function useCanvas() {
     setWorkflowEdges
   } = useCanvasStore();
   
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node<NodeData>>(workflowNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<CanvasEdge>(workflowEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node<NodeData>>(workflowNodes as Node<NodeData>[]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<CanvasEdge>(workflowEdges as CanvasEdge[]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
