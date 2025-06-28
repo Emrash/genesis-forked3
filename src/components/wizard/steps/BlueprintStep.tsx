@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, Edit3, RotateCcw, ArrowRight, Users, Workflow, Star, Clock, Target, Zap, Save, Pencil } from 'lucide-react';
-import { useWizardStore } from '../../../stores/wizardStore';
+import { useWizardStore } from '../../../stores/wizardStore'; 
+import { Blueprint } from '../../../types';
 import { GlassCard } from '../../ui/GlassCard';
 import { HolographicButton } from '../../ui/HolographicButton';
 
@@ -9,7 +10,7 @@ export const BlueprintStep: React.FC = () => {
   const { blueprint, setStep, updateBlueprint } = useWizardStore();
   const [showDetails, setShowDetails] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [editedBlueprint, setEditedBlueprint] = useState<Blueprint | null>(null);
+  const [editedBlueprint, setEditedBlueprint] = useState<Blueprint | null>(null); 
   const [isGeneratingCanvas, setIsGeneratingCanvas] = useState(false);
 
   if (!blueprint) {

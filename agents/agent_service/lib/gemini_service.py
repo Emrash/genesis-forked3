@@ -17,14 +17,14 @@ load_dotenv()
 # Get API key from environment
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# Gemini API configuration
+# Gemini API configuration with corrected model names
 GEMINI_API_URL = os.getenv("GEMINI_API_URL", "https://generativelanguage.googleapis.com/v1beta/models")
 # Updated model names to match the current Gemini API
-GEMINI_PRO_MODEL = os.getenv("GEMINI_PRO_MODEL", "gemini-1.5-pro")
-GEMINI_PRO_VISION_MODEL = os.getenv("GEMINI_PRO_VISION_MODEL", "gemini-1.5-pro-vision")
-GEMINI_FLASH_MODEL = os.getenv("GEMINI_FLASH_MODEL", "gemini-1.5-flash")
+GEMINI_PRO_MODEL = os.getenv("GEMINI_PRO_MODEL", "gemini-pro")
+GEMINI_PRO_VISION_MODEL = os.getenv("GEMINI_PRO_VISION_MODEL", "gemini-pro-vision")
+GEMINI_FLASH_MODEL = os.getenv("GEMINI_FLASH_MODEL", "gemini-pro")  # Fallback to gemini-pro since flash may not be available
 GEMINI_EMBEDDING_MODEL = os.getenv("GEMINI_EMBEDDING_MODEL", "embedding-001")
-GEMINI_DEFAULT_MODEL = os.getenv("GEMINI_DEFAULT_MODEL", GEMINI_FLASH_MODEL)
+GEMINI_DEFAULT_MODEL = os.getenv("GEMINI_DEFAULT_MODEL", GEMINI_PRO_MODEL)
 GEMINI_RETRY_ATTEMPTS = int(os.getenv("GEMINI_RETRY_ATTEMPTS", "3"))
 GEMINI_RETRY_DELAY = float(os.getenv("GEMINI_RETRY_DELAY", "1.0"))
 GEMINI_TIMEOUT = float(os.getenv("GEMINI_TIMEOUT", "60.0"))

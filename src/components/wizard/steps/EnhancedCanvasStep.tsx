@@ -1,38 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ArrowRight, 
-  Eye, 
-  Edit3, 
-  Play, 
-  Save, 
-  Sparkles, 
-  Brain, 
-  Zap, 
-  Target, 
-  Layers,
-  Settings,
-  Users,
-  Palette,
-  Lightbulb,
-  Rocket,
-  Shield,
-  BarChart,
-  Workflow,
-  Star,
-  Command,
-  Bot,
-  Clock,
-  Database,
-  DollarSign,
-  FileText,
-  Globe,
-  Heart,
-  Mail,
-  MessageSquare,
-  Share2,
-  Activity
-} from 'lucide-react';
+import { ArrowRight, Eye, Edit3, Play, Save, Sparkles, Brain, Zap, Target, Layers, Settings, Users, Palette, 
+  Lightbulb, Rocket, Shield, BarChart, Workflow, Star, Command, Bot, Clock, Database, DollarSign, FileText, 
+  Globe, Heart, Mail, MessageSquare, Share2, Activity } from 'lucide-react';
 import { useWizardStore } from '../../../stores/wizardStore';
 import { useEnhancedCanvasStore } from '../../../stores/enhancedCanvasStore';
 import { EnhancedQuantumCanvas } from '../../canvas/EnhancedQuantumCanvas';
@@ -43,7 +13,6 @@ import { WorkflowMonitoringDashboard } from '../../monitoring/WorkflowMonitoring
 import { AgentDebugConsole } from '../../debugging/AgentDebugConsole';
 import { AgentCommunicationVisualizer } from '../../visualization/AgentCommunicationVisualizer';
 import { SimulationLab } from '../../simulation/SimulationLab'; 
-import { ReactFlowProvider } from '@xyflow/react';
 import { Node, Edge } from '@xyflow/react';
 import { Blueprint, SmartSuggestion } from '../../../types';
 import { useCanvas } from '../../../hooks/useCanvas';

@@ -26,7 +26,7 @@ class VoiceService {
     }
   }
 
-  async synthesizeSpeech(
+  async synthesize(
     text: string,
     voiceId?: string,
     options?: {
@@ -208,7 +208,5 @@ const voiceService = new VoiceService();
 
 export default voiceService;
 
-// Add a compatibility method for backward compatibility
-if (voiceService && !voiceService.synthesizeSpeech && voiceService.synthesize) {
-  voiceService.synthesizeSpeech = voiceService.synthesize;
-}
+// Add synthesizeSpeech as an alias of synthesize for backward compatibility
+voiceService.synthesizeSpeech = voiceService.synthesize;

@@ -64,7 +64,7 @@ import { NodeConfigPanel } from '../ui/NodeConfig/NodeConfigPanel';
 import { useCanvasControls } from '../../hooks/useCanvasControls';
 import { useCanvasStore } from '../../stores/canvasStore';
 import type { Blueprint } from '../../types';
-import type {
+import {
   AgentNodeData,
   TriggerNodeData,
   ActionNodeData,
@@ -74,13 +74,13 @@ import type {
   NodeData
 } from '../../types/canvas';
 
-// Define node types without explicit type casting to avoid type incompatibility
-const nodeTypes = {
-  agent: AgentNodeComponent,
-  trigger: TriggerNodeComponent,
-  action: ActionNodeComponent,
-  condition: ConditionNodeComponent,
-  delay: DelayNodeComponent,
+// Define node types with proper typing
+const nodeTypes: Record<string, React.ComponentType<any>> = {
+  agent: AgentNodeComponent as React.ComponentType<any>,
+  trigger: TriggerNodeComponent as React.ComponentType<any>,
+  action: ActionNodeComponent as React.ComponentType<any>,
+  condition: ConditionNodeComponent as React.ComponentType<any>,
+  delay: DelayNodeComponent as React.ComponentType<any>,
 };
 
 const proOptions = {
