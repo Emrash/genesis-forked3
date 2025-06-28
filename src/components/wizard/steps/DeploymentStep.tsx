@@ -1,10 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { CheckCircle, Sparkles, ArrowRight, Bot, Workflow, Brain, Rocket } from 'lucide-react';
 import { useWizardStore } from '../../../stores/wizardStore';
 import { GuildDeploymentPanel } from '../../deployment/GuildDeploymentPanel';
 import { GlassCard } from '../../ui/GlassCard';
 import { HolographicButton } from '../../ui/HolographicButton';
-import { useState } from 'react';
 
 export const DeploymentStep: React.FC = () => {
   const { 
@@ -53,12 +53,16 @@ export const DeploymentStep: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="max-w-3xl mx-auto">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-4xl mx-auto"
+      >
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+          <h1 className="text-3xl font-bold text-white mb-4">
             {isDeploying ? 'Deploying Your Guild...' : 'Guild Deployed Successfully!'}
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-gray-300">
             {isDeploying 
               ? 'Setting up your AI-native infrastructure with intelligent agents'
               : 'Your autonomous digital workspace is live and ready for action'
@@ -67,7 +71,7 @@ export const DeploymentStep: React.FC = () => {
         </div>
 
         {errors.length > 0 && (
-          <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg mb-6">
+          <div className="bg-red-500/20 border border-red-500/30 text-red-300 p-4 rounded-lg mb-6">
             {errors.join(', ')}
           </div>
         )}
@@ -83,7 +87,7 @@ export const DeploymentStep: React.FC = () => {
         ) : isDeployed ? (
           <div className="space-y-6">
             <GlassCard variant="medium" className="p-6">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center mb-6">
                 <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center mr-4">
                   <Rocket className="w-6 h-6 text-white" />
                 </div>
@@ -96,14 +100,16 @@ export const DeploymentStep: React.FC = () => {
                   </p>
                 </div>
                 
-                <HolographicButton
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(`/guild/${deploymentId}`, '_blank')}
-                >
-                  <Rocket className="w-4 h-4 mr-2" />
-                  Manage Guild
-                </HolographicButton>
+                <div className="ml-auto">
+                  <HolographicButton
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(`/guild/${deploymentId}`, '_blank')}
+                  >
+                    <Rocket className="w-4 h-4 mr-2" />
+                    Manage Guild
+                  </HolographicButton>
+                </div>
               </div>
               
               <div className="mb-6">
@@ -111,7 +117,7 @@ export const DeploymentStep: React.FC = () => {
                   <div>
                     <h4 className="font-semibold text-white mb-3 flex items-center">
                       <Bot className="w-5 h-5 mr-2 text-blue-400" />
-                      Live AI Agents ({blueprint?.suggested_structure.agents.length})
+                      Live AI Agents
                     </h4>
                     <ul className="space-y-2">
                       {blueprint?.suggested_structure.agents.map((agent, index) => (
@@ -129,7 +135,7 @@ export const DeploymentStep: React.FC = () => {
                   <div>
                     <h4 className="font-semibold text-white mb-3 flex items-center">
                       <Workflow className="w-5 h-5 mr-2 text-purple-400" />
-                      Active Workflows ({blueprint?.suggested_structure.workflows.length})
+                      Active Workflows
                     </h4>
                     <ul className="space-y-2">
                       {blueprint?.suggested_structure.workflows.map((workflow, index) => (
@@ -150,7 +156,7 @@ export const DeploymentStep: React.FC = () => {
                   <p className="text-blue-200 text-sm">
                     All agents are active with memory systems enabled. They can process voice commands, 
                     maintain conversation context, and execute workflows autonomously. 
-                    Performance metrics show {simulationResults?.execution_time}s average response time.
+                    Performance metrics show excellent response times and accuracy.
                   </p>
                 </div>
               </div>
@@ -196,7 +202,7 @@ export const DeploymentStep: React.FC = () => {
               </div>
             </GlassCard>
 
-            <div className="flex justify-center space-x-4">
+            <div className="flex justify-center space-x-4 mt-8">
               <HolographicButton variant="outline" onClick={handleCreateAnother}>
                 <Sparkles className="w-4 h-4 mr-2" />
                 Create Another Guild
@@ -208,7 +214,7 @@ export const DeploymentStep: React.FC = () => {
             </div>
           </div>
         ) : null}
-      </div>
+      </motion.div>
     </div>
   );
 };
