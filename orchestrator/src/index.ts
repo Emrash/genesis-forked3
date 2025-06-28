@@ -96,7 +96,7 @@ async function initializeClients() {
 }
 
 // API version endpoint
-app.get("/api/wizard/health", async (req, res) => {
+app.get(["/wizard/health", "/api/wizard/health"], async (req, res) => {
   const gemini_key = process.env.GEMINI_API_KEY;
   const elevenlabs_key = process.env.ELEVENLABS_API_KEY;
   const pinecone_key = process.env.PINECONE_API_KEY;
@@ -165,7 +165,7 @@ app.get("/", (req, res) => {
 });
 
 // API status endpoint
-app.get('/status', async (req, res) => {
+app.get(['/status', '/api/status'], async (req, res) => {
   try {
     // Check connection to agent service
     let agentServiceStatus = "unavailable";
@@ -211,7 +211,7 @@ app.get('/status', async (req, res) => {
 });
 
 // Blueprint to Canvas generation endpoint
-app.post(['/generateCanvas', '/api/canvas/generate'], async (req, res) => {
+app.post(['/generateCanvas', '/canvas/generate', '/api/canvas/generate'], async (req, res) => {
   try {
     console.log('🎨 Canvas generation request received');
     const blueprint = req.body.blueprint;
@@ -260,7 +260,7 @@ app.post(['/generateCanvas', '/api/canvas/generate'], async (req, res) => {
 });
 
 // Execute workflow endpoint
-app.post(['/executeFlow', '/api/workflow/execute'], async (req, res) => {
+app.post(['/executeFlow', '/workflow/execute', '/api/workflow/execute'], async (req, res) => {
   try {
     console.log('🔄 Workflow execution request received');
     const { flowId, nodes, edges, context = {} }: {
@@ -590,7 +590,7 @@ app.get('/execution/:executionId', async (req, res) => {
 });
 
 // Blueprint generation endpoint
-app.post(['/generateBlueprint', '/api/wizard/generate-blueprint'], async (req, res) => {
+app.post(['/generateBlueprint', '/wizard/generate-blueprint', '/api/wizard/generate-blueprint'], async (req, res) => {
   try {
     console.log('🧠 Blueprint generation request received');
     const { user_input } = req.body;

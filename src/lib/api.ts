@@ -8,16 +8,22 @@ const hasRealBackend = import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
   (isDevelopment ? 'http://localhost:3000' : 'https://genesisOS-backend-production.up.railway.app');
 
+// Remove trailing slash if present to prevent path issues
+const normalizedApiBaseUrl = API_BASE_URL.endsWith('/') 
+  ? API_BASE_URL.slice(0, -1) 
+  : API_BASE_URL;
+
 console.log('🔧 Phase 3: Enhanced API Configuration:', {
   isDevelopment,
   hasRealBackend,
   API_BASE_URL,
+  normalizedApiBaseUrl,
   mode: hasRealBackend ? 'PRODUCTION_BACKEND' : 'DEVELOPMENT_WITH_FALLBACKS',
   phase: '3 - Backend Integration'
 });
 
 export const api = axios.create({
-  baseURL: `${API_BASE_URL}/api`,
+  baseURL: normalizedApiBaseUrl,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -230,8 +236,8 @@ export const apiMethods = {
       
       // Try to connect to the orchestrator even in dev mode
       try {
-        console.log('Attempting to connect to orchestrator at', API_BASE_URL);
-        const response = await api.post('/api/wizard/generate-blueprint', { user_input: userInput });
+        console.log('Attempting to connect to orchestrator at', normalizedApiBaseUrl);
+        const response = await api.post('/wizard/generate-blueprint', { user_input: userInput });
         console.log('✅ Successfully connected to orchestrator!');
         return response.data;
       } catch (error) {
