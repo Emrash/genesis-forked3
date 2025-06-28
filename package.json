@@ -12,7 +12,6 @@
     "backend:windows": "cd backend && venv\\Scripts\\activate && python run.py",
     "setup:backend": "cd backend && chmod +x setup.sh && ./setup.sh",
     "setup:backend:windows": "cd backend && setup.bat",
-    "orchestrator:dev": "cd orchestrator && npm run dev",
     "agent:dev": "cd agents/agent_service && pip install -r requirements.txt && python run.py"
   },
   "dependencies": {
