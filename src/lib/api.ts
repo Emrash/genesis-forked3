@@ -184,7 +184,17 @@ export const apiMethods = {
     if (!hasRealBackend && isDevelopment) {
       console.log('🔧 Phase 3: Development mode - Using enhanced mock health check');
       await new Promise(resolve => setTimeout(resolve, 500));
-      return mockData.healthCheck;
+      return {
+        ...mockData.healthCheck,
+        phase: "4 - AI & Automation Core",
+        features: {
+          ...mockData.healthCheck.features,
+          voice_synthesis: true,
+          agent_memory: true,
+          workflow_execution: true,
+          simulation: true
+        }
+      };
     }
 
     try {
@@ -221,7 +231,7 @@ export const apiMethods = {
       // Try to connect to the orchestrator even in dev mode
       try {
         console.log('Attempting to connect to orchestrator at', API_BASE_URL);
-        const response = await api.post('/wizard/generate-blueprint', { user_input: userInput });
+        const response = await api.post('/api/wizard/generate-blueprint', { user_input: userInput });
         console.log('✅ Successfully connected to orchestrator!');
         return response.data;
       } catch (error) {
@@ -259,7 +269,7 @@ export const apiMethods = {
       const preferredModel = localStorage.getItem('preferred_ai_model');
       console.log('🧠 Using AI model:', preferredModel || 'default (Gemini Pro)');
       
-      const response = await api.post('/wizard/generate-blueprint', { 
+      const response = await api.post('/api/wizard/generate-blueprint', { 
         user_input: userInput 
       });
       

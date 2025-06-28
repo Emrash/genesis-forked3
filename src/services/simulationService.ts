@@ -13,7 +13,7 @@ export const simulationService = {
     
     try {
       // Try to use the orchestrator API
-      const response = await api.post('/simulation/run', {
+      const response = await api.post('/api/simulation/run', {
         guild_id: guildId,
         ...config
       });

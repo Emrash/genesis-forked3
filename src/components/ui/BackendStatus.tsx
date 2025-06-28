@@ -27,7 +27,9 @@ export const BackendStatus: React.FC<BackendStatusProps> = ({ className = '' }) 
       if (result.connected) {
         // Phase 3: Enhanced status detection
         if (result.status.phase === "3" || 
-            result.status.phase === "3 - Backend Integration") {
+            result.status.phase === "3 - Backend Integration" ||
+            result.status.phase === "4" ||
+            result.status.phase === "4 - AI & Automation Core") {
           setPhase('3');
         }
         
