@@ -28,6 +28,34 @@ git clone https://github.com/yourusername/genesisOS.git
 cd genesisOS
 ```
 
+2. Set up environment variables:
+
+```bash
+# Create environment files from examples
+cp .env.example .env
+cp orchestrator/.env.example orchestrator/.env
+cp agents/agent_service/.env.example agents/agent_service/.env
+
+# Edit the files with your actual API keys and credentials
+```
+
+3. Install dependencies and run all services:
+
+```bash
+npm install
+cd orchestrator && npm install && cd ..
+npm run full-dev
+```
+
+### Manual Setup
+
+1. Clone this repository:
+
+```bash
+git clone https://github.com/yourusername/genesisOS.git
+cd genesisOS
+```
+
 2. Run the setup script:
 
 **On Linux/Mac:**
@@ -50,6 +78,51 @@ npm run full-dev
 ### Manual Setup
 
 1. Install frontend dependencies:
+
+```bash
+npm install
+```
+
+2. Setup the Orchestrator:
+
+```bash
+cd orchestrator
+cp .env.example .env  # Update with your values
+npm install
+cd ..
+```
+
+3. Setup the Agent Service:
+
+```bash
+cd agents/agent_service
+cp .env.example .env  # Update with your values
+pip install -r requirements.txt
+cd ../..
+```
+
+4. Start all components:
+
+```bash
+npm run full-dev
+```
+
+## 🏗 Project Structure
+
+- `/src` - React frontend
+- `/orchestrator` - Node.js workflow orchestration service
+- `/agents/agent_service` - Python FastAPI service for AI agents
+- `/supabase` - Supabase database migrations and configuration
+
+## 🛠 Development Components
+
+You can run each component separately:
+
+- **Frontend**: `npm run dev`
+- **Orchestrator**: `npm run orchestrator:dev`
+- **Agent Service**: `npm run agent:dev`
+
+Or run everything with `npm run full-dev`
 
 ```bash
 npm install

@@ -14,14 +14,9 @@ class VoiceService {
   constructor() {
     // Initialize ElevenLabs client if credentials are available
     if (ELEVENLABS_API_KEY) {
-      try {
-        const { ElevenLabs } = require('elevenlabs-node');
-        this.client = new ElevenLabs(ELEVENLABS_API_KEY);
-        console.log('🔊 ElevenLabs client initialized');
-      } catch (error) {
-        console.warn('⚠️ ElevenLabs Node SDK not available:', error);
-        console.log('⚠️ Using HTTP client fallback for voice synthesis');
-      }
+      // Use direct API calls instead of the SDK
+      this.client = { apiKey: ELEVENLABS_API_KEY };
+      console.log('🔊 ElevenLabs client initialized using HTTP client');
     } else {
       console.log('⚠️ ElevenLabs API key not provided, will use agent service for voice synthesis');
     }
@@ -72,25 +67,29 @@ class VoiceService {
     try {
       const voice = voiceId || ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
       
-      // Get voice settings if not provided
-      let voiceSettings = {
-        stability: options?.stability || 0.5,
-        similarity_boost: options?.similarityBoost || 0.75,
-        style: options?.style || 0.0,
-        use_speaker_boost: options?.speakerBoost !== false
-      };
-      
-      // Generate audio
-      const audioBuffer = await this.client.generate({
-        voice,
+      // Use direct HTTP client
+      const url = `https://api.elevenlabs.io/v1/text-to-speech/${voice}`;
+      const response = await axios.post(url, {
         text,
         model_id: "eleven_monolingual_v1",
-        voice_settings: voiceSettings
+        voice_settings: {
+          stability: options?.stability || 0.5,
+          similarity_boost: options?.similarityBoost || 0.75,
+          style: options?.style || 0.0,
+          use_speaker_boost: options?.speakerBoost !== false
+        }
+      }, {
+        headers: {
+          'Accept': 'audio/mpeg',
+          'Content-Type': 'application/json',
+          'xi-api-key': this.client.apiKey
+        },
+        responseType: 'arraybuffer'
       });
-      
-      // Convert to base64
-      const audioBase64 = Buffer.from(audioBuffer).toString('base64');
-      
+
+      // Convert arraybuffer to base64
+      const audioBase64 = Buffer.from(response.data).toString('base64');
+
       // Convert to data URL for direct use in browsers
       return `data:audio/mpeg;base64,${audioBase64}`;
     } catch (error: any) {

@@ -95,8 +95,46 @@ async function initializeClients() {
   }
 }
 
+// API version endpoint
+@app.get("/api/wizard/health")
+async def get_api_health():
+  gemini_key = os.getenv("GEMINI_API_KEY");
+  elevenlabs_key = os.getenv("ELEVENLABS_API_KEY");
+  pinecone_key = os.getenv("PINECONE_API_KEY");
+  redis_url = os.getenv("REDIS_URL");
+  
+  gemini_configured = Boolean(gemini_key && !gemini_key.startsWith('your_'));
+  elevenlabs_configured = Boolean(elevenlabs_key && !elevenlabs_key.startsWith('your_'));
+  pinecone_configured = Boolean(pinecone_key && !pinecone_key.startsWith('your_'));
+  redis_configured = Boolean(redis_url && !redis_url.startsWith('your_'));
+  
+  logger.info(`Health check requested. Services: Gemini=${gemini_configured}, ElevenLabs=${elevenlabs_configured}, Pinecone=${pinecone_configured}, Redis=${redis_configured}`);
+  
+  return {
+    status: "healthy",
+    message: "GenesisOS API is running",
+    version: "1.0.0",
+    phase: "4 - AI & Automation Core",
+    integrations: {
+      gemini: gemini_configured ? "configured" : "not configured",
+      elevenlabs: elevenlabs_configured ? "configured" : "not configured",
+      pinecone: pinecone_configured ? "configured" : "not configured",
+      redis: redis_configured ? "configured" : "not configured"
+    },
+    features: {
+      memory: true,
+      voice: elevenlabs_configured,
+      blueprint_generation: gemini_configured,
+      workflow_execution: true,
+      simulation: true,
+      agent_memory: true,
+      voice_synthesis: true
+    }
+  };
+}
+
 // Health check endpoint
-app.get('/', (req, res) => {
+@app.get("/")
   const gemini_key = process.env.GEMINI_API_KEY;
   const elevenlabs_key = process.env.ELEVENLABS_API_KEY;
   const pinecone_key = process.env.PINECONE_API_KEY;
@@ -174,7 +212,7 @@ app.get('/status', async (req, res) => {
 });
 
 // Blueprint to Canvas generation endpoint
-app.post('/generateCanvas', async (req, res) => {
+app.post(['/generateCanvas', '/api/canvas/generate'], async (req, res) => {
   try {
     console.log('🎨 Canvas generation request received');
     const blueprint = req.body.blueprint;
@@ -223,7 +261,7 @@ app.post('/generateCanvas', async (req, res) => {
 });
 
 // Execute workflow endpoint
-app.post('/executeFlow', async (req, res) => {
+app.post(['/executeFlow', '/api/workflow/execute'], async (req, res) => {
   try {
     console.log('🔄 Workflow execution request received');
     const { flowId, nodes, edges, context = {} }: {
@@ -553,7 +591,7 @@ app.get('/execution/:executionId', async (req, res) => {
 });
 
 // Blueprint generation endpoint
-app.post('/generateBlueprint', async (req, res) => {
+app.post(['/generateBlueprint', '/api/wizard/generate-blueprint'], async (req, res) => {
   try {
     console.log('🧠 Blueprint generation request received');
     const { user_input } = req.body;
@@ -592,7 +630,7 @@ app.post('/generateBlueprint', async (req, res) => {
 });
 
 // Run simulation endpoint
-app.post('/simulation/run', async (req, res) => {
+app.post(['/simulation/run', '/api/simulation/run'], async (req, res) => {
   try {
     console.log('🧪 Simulation request received');
     const config = req.body;
