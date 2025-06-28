@@ -96,21 +96,20 @@ async function initializeClients() {
 }
 
 // API version endpoint
-@app.get("/api/wizard/health")
-async def get_api_health():
-  gemini_key = os.getenv("GEMINI_API_KEY");
-  elevenlabs_key = os.getenv("ELEVENLABS_API_KEY");
-  pinecone_key = os.getenv("PINECONE_API_KEY");
-  redis_url = os.getenv("REDIS_URL");
+app.get("/api/wizard/health", async (req, res) => {
+  const gemini_key = process.env.GEMINI_API_KEY;
+  const elevenlabs_key = process.env.ELEVENLABS_API_KEY;
+  const pinecone_key = process.env.PINECONE_API_KEY;
+  const redis_url = process.env.REDIS_URL;
   
-  gemini_configured = Boolean(gemini_key && !gemini_key.startsWith('your_'));
-  elevenlabs_configured = Boolean(elevenlabs_key && !elevenlabs_key.startsWith('your_'));
-  pinecone_configured = Boolean(pinecone_key && !pinecone_key.startsWith('your_'));
-  redis_configured = Boolean(redis_url && !redis_url.startsWith('your_'));
+  const gemini_configured = Boolean(gemini_key && !gemini_key.startsWith('your_'));
+  const elevenlabs_configured = Boolean(elevenlabs_key && !elevenlabs_key.startsWith('your_'));
+  const pinecone_configured = Boolean(pinecone_key && !pinecone_key.startsWith('your_'));
+  const redis_configured = Boolean(redis_url && !redis_url.startsWith('your_'));
   
-  logger.info(`Health check requested. Services: Gemini=${gemini_configured}, ElevenLabs=${elevenlabs_configured}, Pinecone=${pinecone_configured}, Redis=${redis_configured}`);
+  console.log(`Health check requested. Services: Gemini=${gemini_configured}, ElevenLabs=${elevenlabs_configured}, Pinecone=${pinecone_configured}, Redis=${redis_configured}`);
   
-  return {
+  return res.json({
     status: "healthy",
     message: "GenesisOS API is running",
     version: "1.0.0",
@@ -130,11 +129,11 @@ async def get_api_health():
       agent_memory: true,
       voice_synthesis: true
     }
-  };
-}
+  });
+});
 
 // Health check endpoint
-@app.get("/")
+app.get("/", (req, res) => {
   const gemini_key = process.env.GEMINI_API_KEY;
   const elevenlabs_key = process.env.ELEVENLABS_API_KEY;
   const pinecone_key = process.env.PINECONE_API_KEY;
