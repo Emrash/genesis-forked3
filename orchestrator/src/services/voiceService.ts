@@ -17,6 +17,10 @@ class VoiceService {
       // Use direct API calls instead of the SDK to avoid compatibility issues
       this.client = { apiKey: ELEVENLABS_API_KEY };
       console.log('🔊 ElevenLabs client initialized using HTTP client');
+    }
+  }
+
+  async synthesize(
     text: string,
     voiceId?: string,
     options?: {
