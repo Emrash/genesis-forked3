@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Node, Edge, useNodesState, useEdgesState, Connection, addEdge, MarkerType } from '@xyflow/react';
+import { Node, Edge, useNodesState, useEdgesState, Connection, addEdge, MarkerType, Position } from '@xyflow/react';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useWizardStore } from '../stores/wizardStore';
 import { canvasService } from '../services/canvasService';
-import { NodeData, CanvasEdge } from '../types/canvas';
+import { NodeData, CanvasEdge, AgentNodeData, TriggerNodeData, ActionNodeData } from '../types/canvas';
 
 /**
  * Hook for managing canvas operations
