@@ -10,7 +10,8 @@ const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8i
  */
 class VoiceService {
   private client: any;
-  synthesize: any;
+  // Add synthesizeSpeech as an optional property for backward compatibility
+  synthesizeSpeech?: typeof this.synthesize;
 
   constructor() {
     try {

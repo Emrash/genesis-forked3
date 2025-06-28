@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ReactFlowProvider } from '@xyflow/react';
-import { ArrowRight, Eye, Edit3, Play, Save, Sparkles, Brain, Zap, Target, Layers, Settings, Users, Palette, 
-  Lightbulb, Rocket, Shield, BarChart, Workflow, Star, Command, Bot, Clock, Database, DollarSign, FileText, 
+import { ArrowRight, Edit3, Play, Save, Sparkles, Brain, Zap, Target, Settings, Users, 
+  Rocket, BarChart, Workflow, Star, Command, Bot, Clock, Database, DollarSign, FileText, 
   Globe, Heart, Mail, MessageSquare, Share2, Activity } from 'lucide-react';
 import { useWizardStore } from '../../../stores/wizardStore';
 import { useEnhancedCanvasStore } from '../../../stores/enhancedCanvasStore';
@@ -15,9 +15,10 @@ import { AgentDebugConsole } from '../../debugging/AgentDebugConsole';
 import { AgentCommunicationVisualizer } from '../../visualization/AgentCommunicationVisualizer';
 import { SimulationLab } from '../../simulation/SimulationLab'; 
 import { Node, Edge } from '@xyflow/react';
-import { Blueprint, SmartSuggestion } from '../../../types';
+import { Blueprint } from '../../../types';
+import { NodeData } from '../../../types/canvas';
 import { useCanvas } from '../../../hooks/useCanvas';
-import { canvasService } from '../../../services/canvasService';
+import { CanvasEdge } from '../../../types/canvas';
 
 export const EnhancedCanvasStep: React.FC = () => {
   const { blueprint, setStep } = useWizardStore();
@@ -28,7 +29,6 @@ export const EnhancedCanvasStep: React.FC = () => {
     isCollaborative,
     smartSuggestions,
     showNeuralNetwork,
-    setShowNeuralNetwork,
     performanceMode,
     setPerformanceMode,
     setWorkflowNodes,
@@ -47,15 +47,6 @@ export const EnhancedCanvasStep: React.FC = () => {
   
   // Get canvas methods from custom hook
   const {
-    nodes: canvasNodes,
-    edges: canvasEdges,
-    onNodesChange,
-    onEdgesChange,
-    onConnect,
-    saveCanvas,
-    executeWorkflow,
-    isLoading,
-    error,
     loadCanvasFromBlueprint
   } = useCanvas();
 
@@ -89,7 +80,7 @@ export const EnhancedCanvasStep: React.FC = () => {
     if (!blueprint) return;
     
     console.log('🎨 Generating canvas from blueprint in EnhancedCanvasStep');
-    const newNodes: Node[] = [];
+    const newNodes: Node<NodeData>[] = [];
     const newEdges: Edge[] = [];
     
     // Create trigger node
@@ -104,7 +95,7 @@ export const EnhancedCanvasStep: React.FC = () => {
         icon: Rocket,
         color: 'from-emerald-500 to-teal-500',
         status: 'ready'
-      },
+      } as NodeData,
     });
     
     // Create agent nodes with smart layout algorithm
@@ -178,7 +169,7 @@ export const EnhancedCanvasStep: React.FC = () => {
         return 'Professional, intelligent, and goal-oriented';
       };
       
-      const agentNode = {
+      const agentNode: Node<NodeData> = {
         id: `agent-${index + 1}`,
         type: 'agent',
         position: { 
@@ -194,7 +185,7 @@ export const EnhancedCanvasStep: React.FC = () => {
           icon: getAgentIcon(agent.role),
           color: getAgentColor(index),
           status: 'ready'
-        },
+        } as NodeData,
       };
       newNodes.push(agentNode);
 
@@ -257,7 +248,7 @@ export const EnhancedCanvasStep: React.FC = () => {
     };
 
     blueprint.suggested_structure.workflows.forEach((workflow, index) => {
-      const workflowNode = {
+      const workflowNode: Node<NodeData> = {
         id: `workflow-${index + 1}`,
         type: 'action',
         position: { 
@@ -271,7 +262,7 @@ export const EnhancedCanvasStep: React.FC = () => {
           icon: getWorkflowIcon(workflow.trigger_type),
           color: getWorkflowColor(workflow.trigger_type),
           status: 'pending'
-        },
+        } as NodeData,
       };
       newNodes.push(workflowNode);
 
@@ -498,9 +489,8 @@ export const EnhancedCanvasStep: React.FC = () => {
               blueprint={blueprint}
               onSave={handleSaveCanvas}
               onExecute={handleExecuteWorkflow}
-              initialNodes={workflowNodes}
-              initialEdges={workflowEdges}
-              onNodeSelect={(nodeId: string) => setSelectedAgent(nodeId)}
+              initialNodes={workflowNodes as Node<NodeData>[]}
+              initialEdges={workflowEdges as CanvasEdge[]}
               />
             )}
             
@@ -813,7 +803,7 @@ export const EnhancedCanvasStep: React.FC = () => {
 };
 
 // Helper component for simulation lab with proper React Flow provider
-const EnhancedSimulationLab = ({ guildId, agents, advanced }: any) => (
+const EnhancedSimulationLab = ({ guildId, agents }: any) => (
   <ReactFlowProvider>
     <SimulationLab guildId={guildId} agents={agents} />
   </ReactFlowProvider>
