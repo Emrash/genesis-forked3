@@ -44,7 +44,6 @@ import { AgentDebugConsole } from '../../debugging/AgentDebugConsole';
 import { AgentCommunicationVisualizer } from '../../visualization/AgentCommunicationVisualizer';
 import { SimulationLab } from '../../simulation/SimulationLab'; 
 import { ReactFlowProvider } from '@xyflow/react';
-import { ReactFlowProvider } from '@xyflow/react';
 import { Node, Edge } from '@xyflow/react';
 import { Blueprint, SmartSuggestion } from '../../../types';
 import { useCanvas } from '../../../hooks/useCanvas';
