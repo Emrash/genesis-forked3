@@ -823,7 +823,7 @@ export const EnhancedQuantumCanvas: React.FC<EnhancedQuantumCanvasProps> = ({
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="absolute top-4 left-4 right-4 z-50 pointer-events-auto"
+        className="absolute top-4 left-4 right-4 z-50"
       >
         <GlassCard variant="medium" className="p-4">
           <div className="flex items-center justify-between">
@@ -868,36 +868,49 @@ export const EnhancedQuantumCanvas: React.FC<EnhancedQuantumCanvasProps> = ({
               {/* View Controls */}
               <div className="flex items-center space-x-1 bg-white/5 rounded-lg p-1">
                 <HolographicButton
+                  title="Show/hide grid"
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsGridVisible(!isGridVisible)}
-                  className={isGridVisible ? 'text-blue-400' : ''}
+                  className={`${isGridVisible ? 'text-blue-400' : ''} relative group`}
                 >
                   <Grid className="w-4 h-4" />
+                  <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                    Toggle Grid
+                  </span>
                 </HolographicButton>
 
                 <HolographicButton
+                  title="Show/hide neural network"
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsNeuralNetworkVisible(!isNeuralNetworkVisible)}
-                  className={isNeuralNetworkVisible ? 'text-purple-400' : ''}
+                  className={`${isNeuralNetworkVisible ? 'text-purple-400' : ''} relative group`}
                 >
                   <Brain className="w-4 h-4" />
+                  <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                    Toggle Neural Network
+                  </span>
                 </HolographicButton>
 
                 <HolographicButton
+                  title="Show/hide minimap"
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsMinimapVisible(!isMinimapVisible)}
-                  className={isMinimapVisible ? 'text-green-400' : ''}
+                  className={`${isMinimapVisible ? 'text-green-400' : ''} relative group`}
                 >
                   {isMinimapVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                    Toggle Minimap
+                  </span>
                 </HolographicButton>
               </div>
 
               {/* History Controls */}
               <div className="flex items-center space-x-1 bg-white/5 rounded-lg p-1">
                 <HolographicButton
+                  title="Undo"
                   variant="ghost"
                   size="sm"
                   onClick={() => {
@@ -907,11 +920,16 @@ export const EnhancedQuantumCanvas: React.FC<EnhancedQuantumCanvasProps> = ({
                       setEdges([...undoState.edges] as CanvasEdge[]);
                     }
                   }}
+                  className="relative group"
                 >
                   <RotateCcw className="w-4 h-4" />
+                  <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                    Undo (Ctrl+Z)
+                  </span>
                 </HolographicButton>
 
                 <HolographicButton
+                  title="Redo"
                   variant="ghost"
                   size="sm"
                   onClick={() => {
@@ -921,49 +939,72 @@ export const EnhancedQuantumCanvas: React.FC<EnhancedQuantumCanvasProps> = ({
                       setEdges([...redoState.edges] as CanvasEdge[]);
                     }
                   }}
+                  className="relative group"
                 >
                   <RotateCw className="w-4 h-4" />
+                  <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                    Redo (Ctrl+Shift+Z)
+                  </span>
                 </HolographicButton>
               </div>
 
               {/* Smart Tools */}
               <HolographicButton
+                title="Auto Layout"
                 variant="ghost"
                 size="sm"
                 onClick={autoLayout}
+                className="relative group"
               >
                 <Layout className="w-4 h-4" />
+                <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                  Auto Layout
+                </span>
               </HolographicButton>
 
               <HolographicButton
+                title="Toggle Collaboration"
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsCollaborative(!isCollaborative)}
-                className={isCollaborative ? 'text-purple-400' : ''}
+                className={`${isCollaborative ? 'text-purple-400' : ''} relative group`}
               >
                 <Users className="w-4 h-4" />
+                <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                  Toggle Collaboration
+                </span>
               </HolographicButton>
 
               <HolographicButton
+                title="Save Canvas"
                 variant="outline"
                 size="sm"
                 onClick={handleSave}
+                className="relative group"
               >
                 <Save className="w-4 h-4" />
+                <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                  Save Canvas (Ctrl+S)
+                </span>
               </HolographicButton>
 
               <HolographicButton
+                title="Execute Workflow"
                 variant="primary"
                 size="sm"
                 onClick={handleExecute}
                 disabled={isExecuting}
                 glow
+                className="relative group"
               >
                 {isExecuting ? (
                   <Pause className="w-4 h-4" />
                 ) : (
                   <Play className="w-4 h-4" />
                 )}
+                <span className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                  {isExecuting ? 'Pause Execution' : 'Execute Workflow (Ctrl+Shift+R)'}
+                </span>
               </HolographicButton>
             </div>
           </div>
