@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useRef, useMemo, ComponentType } from 'react';
 import {
   ReactFlowProvider,
   ReactFlow,
@@ -13,7 +13,8 @@ import {
   MarkerType,
   Connection,
   BackgroundVariant,
-  NodeTypes
+  NodeTypes,
+  NodeProps
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -73,8 +74,8 @@ import type {
   NodeData
 } from '../../types/canvas';
 
-// Define node types with flexible typing
-const nodeTypes: NodeTypes = {
+// Define node types without explicit type casting to avoid type incompatibility
+const nodeTypes = {
   agent: AgentNodeComponent,
   trigger: TriggerNodeComponent,
   action: ActionNodeComponent,
@@ -626,7 +627,7 @@ export const EnhancedQuantumCanvas: React.FC<EnhancedQuantumCanvasProps> = ({
     if (event.detail === 2) {  // Double-click to open config
       openNodeConfig(node.id);
     } else {
-      setSelectedNode(node);
+      setSelectedNodes([node.id]);
     }
   }, [setSelectedNodes]);
 

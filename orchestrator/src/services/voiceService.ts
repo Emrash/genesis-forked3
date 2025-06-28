@@ -10,6 +10,7 @@ const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8i
  */
 class VoiceService {
   private client: any;
+  synthesize: any;
 
   constructor() {
     try {
