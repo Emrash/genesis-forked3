@@ -789,10 +789,9 @@ export const EnhancedCanvasStep: React.FC = () => {
                     <Sparkles className="w-4 h-4 mr-2" />
                     Start Creating
                   </HolographicButton>
-          initialNodes={workflowNodes as Node<NodeData>[]}
-          initialEdges={workflowEdges as CanvasEdge[]}
+                </div>
+              </GlassCard>
             </motion.div>
-          </motion.div>
         )}
       </AnimatePresence>
 
