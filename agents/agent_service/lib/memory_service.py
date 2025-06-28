@@ -400,14 +400,48 @@ class MemoryService:
                 # Handle different versions of Pinecone SDK
                 try:
                     # Try the new syntax first
-                    self.pinecone_index.upsert(
-                        vectors=[{
-                            "id": id,
-                            "values": vector,
-                            "metadata": metadata
-                        }],
-                        namespace=metadata.get("agent_id", "default")
-                    )
+                    # Verify vector dimensions
+                    if len(vector) != MEMORY_DEFAULT_DIMENSION:
+                        logger.warning(f"⚠️ Vector dimension mismatch. Expected {MEMORY_DEFAULT_DIMENSION}, got {len(vector)}")
+                        # Pad or truncate vector to match expected dimensions
+                        if len(vector) < MEMORY_DEFAULT_DIMENSION:
+                            vector = vector + [0.0] * (MEMORY_DEFAULT_DIMENSION - len(vector))
+                        else:
+                            vector = vector[:MEMORY_DEFAULT_DIMENSION]
+                    
+                    try:
+                        self.pinecone_index.upsert(
+                            vectors=[{
+                                "id": id,
+                                "values": vector,
+                                "metadata": metadata
+                            }],
+                            namespace=metadata.get("agent_id", "default")
+                        )
+                    except Exception as e:
+                        # Check for common Pinecone errors
+                        if "dimension mismatch" in str(e).lower():
+                            logger.error(f"❌ Pinecone dimension mismatch: {e}")
+                        elif "bad request" in str(e).lower():
+                            logger.error(f"❌ Pinecone bad request: {e}")
+                            # Try with simplified metadata (sometimes metadata can be too large)
+                            simplified_metadata = {
+                                "agent_id": metadata.get("agent_id", ""),
+                                "content_summary": metadata.get("content", "")[:100] if metadata.get("content") else "",
+                                "type": metadata.get("type", ""),
+                                "importance": metadata.get("importance", 0),
+                                "created_at": metadata.get("created_at", 0)
+                            }
+                            self.pinecone_index.upsert(
+                                vectors=[{
+                                    "id": id,
+                                    "values": vector,
+                                    "metadata": simplified_metadata
+                                }],
+                                namespace=metadata.get("agent_id", "default")
+                            )
+                        else:
+                            raise
                 except (TypeError, AttributeError):
                     # Fallback to older syntax
                     self.pinecone_index.upsert(
@@ -416,6 +450,8 @@ class MemoryService:
                     )
             except Exception as e:
                 logger.error(f"❌ Failed to store memory in Pinecone: {str(e)}")
+                # Don't raise the error, as this would break the memory store flow
+                # Just log it and allow the function to continue
             
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(self.executor, _upsert_to_pinecone)

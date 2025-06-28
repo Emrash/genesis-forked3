@@ -20,7 +20,7 @@ class VoiceService {
     }
   }
 
-  async synthesize(
+  async synthesizeSpeech(
     text: string,
     voiceId?: string,
     options?: {
@@ -144,9 +144,13 @@ class VoiceService {
       console.log('🔊 Listing available voices');
       
       // If ElevenLabs client is available, use it directly
-      if (this.client) {
-        const voicesData = await this.client.getVoices();
-        return voicesData.voices;
+      if (this.client && typeof this.client.getVoices === 'function') {
+        try {
+          const voicesData = await this.client.getVoices();
+          return voicesData.voices;
+        } catch (error) {
+          console.warn('Failed to get voices using client, falling back to HTTP request:', error);
+        }
       }
       
       // Otherwise, use agent service
