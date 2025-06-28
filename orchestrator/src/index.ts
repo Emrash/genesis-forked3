@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import blueprintService from './services/blueprintService';
 import agentService from './services/agentService';
+import http from 'http';
 import workflowService from './services/workflowService';
 import memoryService from './services/memoryService';
 import simulationService from './services/simulationService';
@@ -44,7 +45,7 @@ interface WorkflowNode {
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 3000;
+let PORT = parseInt(process.env.PORT || "3000");
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL || 'http://localhost:8001';
 console.log(`🚀 GenesisOS Orchestrator starting up at port ${PORT}`);
@@ -766,21 +767,40 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-// Start the server
-app.listen(PORT, async () => {
-  await initializeClients();
-  console.log(`🚀 GenesisOS Orchestrator ready at http://localhost:${PORT}`);
-  console.log(`📋 API Endpoints available:
-  - POST /generateBlueprint
-  - POST /generateCanvas
-  - POST /executeFlow
-  - GET /execution/:executionId
-  - POST /agentDispatch
-  - POST /simulation/run
-  - GET /simulation/:simulationId
-  - POST /webhook
-  `);
-});
+// Function to try starting the server on a port, and increment if already in use
+function startServer(port: number) {
+  const server = http.createServer(app);
+  
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`⚠️ Port ${port} is already in use. Trying port ${port + 1}...`);
+      startServer(port + 1);
+    } else {
+      console.error('❌ Error starting orchestrator server:', err);
+    }
+  });
+  
+  server.on('listening', async () => {
+    PORT = port; // Update the global PORT variable
+    await initializeClients();
+    console.log(`🚀 GenesisOS Orchestrator ready at http://localhost:${port}`);
+    console.log(`📋 API Endpoints available:
+    - POST /generateBlueprint
+    - POST /generateCanvas
+    - POST /executeFlow
+    - GET /execution/:executionId
+    - POST /agentDispatch
+    - POST /simulation/run
+    - GET /simulation/:simulationId
+    - POST /webhook
+    `);
+  });
+  
+  server.listen(port);
+}
+
+// Start the server with the initial port
+startServer(PORT);
 
 process.on('SIGINT', async () => {
   console.log('🛑 Orchestrator shutting down...');
