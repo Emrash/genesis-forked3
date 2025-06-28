@@ -807,4 +807,3 @@ def get_gemini_service(api_key: Optional[str] = None, model: str = GEMINI_DEFAUL
     if _gemini_service is None:
         _gemini_service = GeminiService(api_key, model)
     return _gemini_service
-    url = f"{GEMINI_API_URL}/{self.model}:generateContent?key={self.api_key}"
