@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Bot, 
   Users, 
@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 import { HolographicButton } from '../ui/HolographicButton';
+import { ReactFlowProvider } from '@xyflow/react';
 
 interface Agent {
   id: string;
@@ -863,6 +864,7 @@ export const AgentCommunicationVisualizer: React.FC<AgentCommunicationVisualizer
   
   return (
     <div className={`${className} ${isFullscreen ? 'fixed inset-0 z-50 bg-gray-900 p-4' : ''}`}>
+      <ReactFlowProvider>
       <GlassCard variant="medium" className={`${isFullscreen ? 'h-full' : ''}`}>
         {/* Header */}
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
@@ -1216,6 +1218,7 @@ export const AgentCommunicationVisualizer: React.FC<AgentCommunicationVisualizer
           </div>
         )}
       </GlassCard>
+      </ReactFlowProvider>
     </div>
   );
 };

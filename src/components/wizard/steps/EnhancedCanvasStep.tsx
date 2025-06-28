@@ -44,6 +44,7 @@ import { AgentDebugConsole } from '../../debugging/AgentDebugConsole';
 import { AgentCommunicationVisualizer } from '../../visualization/AgentCommunicationVisualizer';
 import { SimulationLab } from '../../simulation/SimulationLab'; 
 import { ReactFlowProvider } from '@xyflow/react';
+import { ReactFlowProvider } from '@xyflow/react';
 import { Node, Edge } from '@xyflow/react';
 import { Blueprint, SmartSuggestion } from '../../../types';
 import { useCanvas } from '../../../hooks/useCanvas';
@@ -387,6 +388,7 @@ export const EnhancedCanvasStep: React.FC = () => {
 
   return (
     <div className="container mx-auto px-6 py-12 max-w-8xl">
+      <ReactFlowProvider>
       {/* Revolutionary Header */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
@@ -836,6 +838,14 @@ export const EnhancedCanvasStep: React.FC = () => {
           // Handle voice commands for canvas control
         }}
       />
+      </ReactFlowProvider>
     </div>
   );
 };
+
+// Helper component for simulation lab with proper React Flow provider
+const EnhancedSimulationLab = ({ guildId, agents, advanced }: any) => (
+  <ReactFlowProvider>
+    <SimulationLab guildId={guildId} agents={agents} />
+  </ReactFlowProvider>
+);

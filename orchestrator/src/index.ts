@@ -380,16 +380,28 @@ agentRouter.post('/voice/synthesize', async (req, res) => {
       return res.status(400).json({ error: 'Text is required' });
     }
     
-    // Check which method is available on voiceService
-    const synthesisMethod = voiceService.synthesizeSpeech || voiceService.synthesize;
-    if (!synthesisMethod) {
+    // Try to use the method directly
+    if (!voiceService.synthesizeSpeech) {
+      console.log('🔊 synthesizeSpeech method not found, checking for synthesize method');
+      // For backward compatibility, copy the synthesize method if it exists
+      if (voiceService.synthesize) {
+        voiceService.synthesizeSpeech = voiceService.synthesize;
+      } else {
+        return res.status(500).json({
+          error: 'Voice synthesis method not available',
+          success: false
+        });
+      }
+    }
+    
+    if (!voiceService.synthesizeSpeech) {
       return res.status(500).json({
         error: 'Voice synthesis method not available',
         success: false
       });
     }
     
-    const audio = await synthesisMethod.call(voiceService, text, voice_id, {
+    const audio = await voiceService.synthesizeSpeech(text, voice_id, {
       stability,
       similarityBoost: similarity_boost,
       style

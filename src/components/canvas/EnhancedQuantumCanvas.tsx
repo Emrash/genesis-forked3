@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import {
+  ReactFlowProvider,
   ReactFlow,
   Node,
   Panel as ReactFlowPanel,
@@ -808,6 +809,7 @@ export const EnhancedQuantumCanvas: React.FC<EnhancedQuantumCanvasProps> = ({
   }, [nodes, edges, addToHistory]);
 
   return (
+    <ReactFlowProvider>
     <div className="w-full h-full relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Enhanced Quantum Background */}
       <QuantumParticleSystem intensity={0.4} nodeCount={nodes.length} />
@@ -1297,5 +1299,6 @@ export const EnhancedQuantumCanvas: React.FC<EnhancedQuantumCanvasProps> = ({
           ))}
         </AnimatePresence>
     </div>
+    </ReactFlowProvider>
   );
 };

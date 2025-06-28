@@ -29,6 +29,7 @@ import { GlassCard } from '../ui/GlassCard';
 import { HolographicButton } from '../ui/HolographicButton';
 import { workflowExecutionService, ExecutionStatus, ExecutionHistoryEntry } from '../../services/workflowExecutionService';
 import { formatDistanceToNow } from 'date-fns';
+import { ReactFlowProvider } from '@xyflow/react';
 
 interface WorkflowMonitoringDashboardProps {
   workflowId: string;
@@ -812,6 +813,7 @@ export const WorkflowMonitoringDashboard: React.FC<WorkflowMonitoringDashboardPr
   
   return (
     <div className={`space-y-6 ${className}`}>
+      <ReactFlowProvider>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -865,6 +867,7 @@ export const WorkflowMonitoringDashboard: React.FC<WorkflowMonitoringDashboardPr
           {selectedTab === 'active' ? renderActiveExecutionTab() : renderHistoryTab()}
         </motion.div>
       </AnimatePresence>
+      </ReactFlowProvider>
     </div>
   );
 };

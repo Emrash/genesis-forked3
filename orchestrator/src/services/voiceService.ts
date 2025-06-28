@@ -10,13 +10,18 @@ const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8i
  */
 class VoiceService {
   private client: any;
-  
+
   constructor() {
-    // Initialize ElevenLabs client if credentials are available
-    if (ELEVENLABS_API_KEY) {
-      // Use direct API calls instead of the SDK to avoid compatibility issues
-      this.client = { apiKey: ELEVENLABS_API_KEY };
-      console.log('🔊 ElevenLabs client initialized using HTTP client');
+    try {
+      // Initialize ElevenLabs client if credentials are available
+      if (ELEVENLABS_API_KEY) {
+        // Use direct API calls instead of the SDK to avoid compatibility issues
+        this.client = { apiKey: ELEVENLABS_API_KEY };
+        console.log('🔊 ElevenLabs client initialized using HTTP client');
+      }
+    } catch (error) {
+      console.error('Failed to initialize ElevenLabs client:', error);
+      this.client = null;
     }
   }
 
@@ -201,3 +206,8 @@ class VoiceService {
 const voiceService = new VoiceService();
 
 export default voiceService;
+
+// Add a compatibility method for backward compatibility
+if (voiceService && !voiceService.synthesizeSpeech && voiceService.synthesize) {
+  voiceService.synthesizeSpeech = voiceService.synthesize;
+}
