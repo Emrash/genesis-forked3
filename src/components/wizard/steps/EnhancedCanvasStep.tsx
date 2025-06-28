@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ReactFlowProvider } from '@xyflow/react';
 import { ArrowRight, Eye, Edit3, Play, Save, Sparkles, Brain, Zap, Target, Layers, Settings, Users, Palette, 
   Lightbulb, Rocket, Shield, BarChart, Workflow, Star, Command, Bot, Clock, Database, DollarSign, FileText, 
   Globe, Heart, Mail, MessageSquare, Share2, Activity } from 'lucide-react';
@@ -792,6 +793,7 @@ export const EnhancedCanvasStep: React.FC = () => {
                 </div>
               </GlassCard>
             </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 
