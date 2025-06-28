@@ -73,70 +73,89 @@ class MemoryService:
     def initialize_pinecone(self):
         """Initialize connection to Pinecone vector database."""
         try:
-            import os
-            from pinecone import Pinecone
-            
             pinecone_api_key = os.getenv("PINECONE_API_KEY")
             if not pinecone_api_key or pinecone_api_key.startswith("your_"):
                 logger.warning("⚠️ Pinecone API key not provided.")
                 return
-                
-            # Initialize Pinecone with new syntax
+            
+            # Import Pinecone here to handle import errors more gracefully
             try:
-                self.pinecone_client = Pinecone(api_key=pinecone_api_key)
-                
-                # Check if index exists, create if not
+                from pinecone import Pinecone, ServerlessSpec
+                # Initialize Pinecone with new syntax
                 pinecone_index_name = os.getenv("PINECONE_INDEX_NAME", "genesis-memory")
                 try:
-                    existing_indexes = [index.name for index in self.pinecone_client.list_indexes()]
+                    self.pinecone_client = Pinecone(api_key=pinecone_api_key)
                     
-                    if pinecone_index_name not in existing_indexes:
-                        logger.info(f"Creating Pinecone index: {pinecone_index_name}")
-                        
-                        # Try with serverless spec
-                        try:
-                            from pinecone import ServerlessSpec
-                            # Create index with ServerlessSpec (recommended for new projects)
-                            self.pinecone_client.create_index(
-                                name=pinecone_index_name,
-                                dimension=MEMORY_DEFAULT_DIMENSION,
-                                metric="cosine",
-                                spec=ServerlessSpec(
-                                    cloud="aws",  # or "gcp", "azure"
-                                    region="us-east-1"  # specify your preferred region
+                    # Check if index exists, create if not
+                    pinecone_index_name = os.getenv("PINECONE_INDEX_NAME", "genesis-memory")
+                    
+                    try:
+                        existing_indexes = [index.name for index in self.pinecone_client.list_indexes()]
+                        logger.info(f"Available Pinecone indexes: {existing_indexes}")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Error listing Pinecone indexes: {e}")
+                        existing_indexes = []
+                    
+                    try:
+                        # Connect to the index if it exists
+                        if pinecone_index_name in existing_indexes:
+                            self.pinecone_index = self.pinecone_client.Index(pinecone_index_name)
+                            logger.info(f"✅ Connected to existing Pinecone index: {pinecone_index_name}")
+                        else:
+                            logger.info(f"Creating Pinecone index: {pinecone_index_name}")
+                            
+                            # Try with serverless spec
+                            try:
+                                # Create index with ServerlessSpec (recommended for new projects)
+                                self.pinecone_client.create_index(
+                                    name=pinecone_index_name,
+                                    dimension=MEMORY_DEFAULT_DIMENSION,
+                                    metric="cosine",
+                                    spec=ServerlessSpec(
+                                        cloud="aws",  # or "gcp", "azure"
+                                        region="us-east-1"  # specify your preferred region
+                                    )
                                 )
-                            )
-                        except (ImportError, AttributeError):
-                            # Fallback to standard creation method
-                            self.pinecone_client.create_index(
-                                name=pinecone_index_name,
-                                dimension=MEMORY_DEFAULT_DIMENSION,
-                                metric="cosine"
-                            )
+                            except (ImportError, AttributeError) as e:
+                                logger.warning(f"⚠️ Serverless spec not available: {e}")
+                                # Fallback to standard creation method
+                                self.pinecone_client.create_index(
+                                    name=pinecone_index_name,
+                                    dimension=MEMORY_DEFAULT_DIMENSION,
+                                    metric="cosine"
+                                )
                         
-                        # Wait for index to be ready
-                        import time
-                        try:
-                            while not self.pinecone_client.describe_index(pinecone_index_name).status['ready']:
-                                time.sleep(1)
-                        except:
-                            # Some Pinecone versions might handle this differently
-                            time.sleep(5)  # Give it time to initialize
+                            # Wait for index to be ready
+                            import time
+                            try:
+                                while not self.pinecone_client.describe_index(pinecone_index_name).status['ready']:
+                                    time.sleep(1)
+                            except Exception as e:
+                                logger.warning(f"⚠️ Error checking index readiness: {e}")
+                                # Some Pinecone versions might handle this differently
+                                time.sleep(5)  # Give it time to initialize
+                                
+                            # Connect to the newly created index
+                            self.pinecone_index = self.pinecone_client.Index(pinecone_index_name)
+                            logger.info(f"✅ Created and connected to Pinecone index: {pinecone_index_name}")
                     
-                    # Connect to the index
-                    self.pinecone_index = self.pinecone_client.Index(pinecone_index_name)
-                    logger.info(f"✅ Connected to Pinecone index: {pinecone_index_name}")
+                    except Exception as e:
+                        logger.error(f"❌ Error with Pinecone index operations: {str(e)}")
+                        self.pinecone_index = None
                 except Exception as e:
-                    logger.error(f"❌ Error with Pinecone index operations: {str(e)}")
+                    logger.error(f"❌ Error initializing Pinecone client: {str(e)}")
+                    self.pinecone_client = None
                     self.pinecone_index = None
-            except Exception as e:
-                logger.error(f"❌ Error initializing Pinecone client: {str(e)}")
-                self.pinecone_client = None
             
-        except ImportError:
-            logger.warning("⚠️ Pinecone Python SDK not installed. Long-term memory will be limited.")
+            except ImportError as e:
+                logger.warning(f"⚠️ Pinecone Python SDK not installed: {e}")
+                logger.warning("Long-term memory will be limited to in-memory storage.")
+                self.pinecone_client = None
+                self.pinecone_index = None
         except Exception as e:
             logger.error(f"❌ Failed to initialize Pinecone: {str(e)}")
+            self.pinecone_client = None
+            self.pinecone_index = None
     
     async def generate_embedding(self, text: str) -> List[float]:
         """Generate embedding for text.

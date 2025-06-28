@@ -3,7 +3,7 @@ import { v4 as uuid } from 'uuid';
 
 const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL || 'http://localhost:8001';
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID;
+const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM'; // Default voice ID
 
 /**
  * Service for voice synthesis capabilities
@@ -14,18 +14,9 @@ class VoiceService {
   constructor() {
     // Initialize ElevenLabs client if credentials are available
     if (ELEVENLABS_API_KEY) {
-      // Use direct API calls instead of the SDK
+      // Use direct API calls instead of the SDK to avoid compatibility issues
       this.client = { apiKey: ELEVENLABS_API_KEY };
       console.log('🔊 ElevenLabs client initialized using HTTP client');
-    } else {
-      console.log('⚠️ ElevenLabs API key not provided, will use agent service for voice synthesis');
-    }
-  }
-  
-  /**
-   * Synthesize speech from text
-   */
-  async synthesizeSpeech(
     text: string,
     voiceId?: string,
     options?: {
