@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ReactFlowProvider } from '@xyflow/react';
-import { ReactFlowProvider } from '@xyflow/react';
 import { ArrowRight, Edit3, Play, Save, Sparkles, Brain, Zap, Target, Settings, Users, 
   Rocket, BarChart, Workflow, Star, Command, Bot, Clock, Database, DollarSign, FileText, 
   Globe, Heart, Mail, MessageSquare, Share2, Activity } from 'lucide-react';
