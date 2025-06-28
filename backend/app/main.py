@@ -102,10 +102,15 @@ async def health_check():
             "simulation_engine": "operational"
         }
         
+        from fastapi import Request
+        import datetime
+
+        # If you want to access the client IP, you need to accept 'request' as a parameter
+        # Update the function signature to: async def health_check(request: Request):
+
         return {
-          ...mockData.healthCheck,
-          last_checked: new Date().toISOString(),
-          client_ip: request.client.host,
+            "last_checked": datetime.datetime.utcnow().isoformat() + "Z",
+            # "client_ip": request.client.host,  # Uncomment if you add 'request' to the function parameters
             "phase": "4 - Voice Interface & Simulation Lab",
             "services": services,
             "mode": "development" if settings.DEBUG else "production",

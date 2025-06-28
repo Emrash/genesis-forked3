@@ -1,34 +1,25 @@
-# Node.js / Frontend build artifacts and dependencies
+# Ignore Node.js dependency directories
 node_modules/
+orchestrator/node_modules/
+
+# Ignore Python virtual environment
+agents/agent_service/venv/
+
+# Ignore build output directories
 dist/
-build/
+orchestrator/dist/
 
-# Python / Backend virtual environment and compiled files
-venv/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.so
-
-# Environment variables (sensitive information)
+# Ignore environment variable files
 .env
-backend/.env
+agents/agent_service/.env
+orchestrator/.env
 
-# IDE and OS generated files
-.DS_Store
-.vscode/
-.idea/
-npm-debug.log*
-yarn-debug.log*
-.cache/
+# Ignore package lock files
+package-lock.json
+orchestrator/package-lock.json
 
-# Large documentation and setup files (can be provided on demand)
-DEVELOPMENT_ROADMAP.md
-GOOGLE_OAUTH_SETUP_DETAILED.md
-GOOGLE_OAUTH_SETUP.md
-IMPLEMENTATION_BLUEPRINT.md
-VSCODE_BACKEND_SETUP.md
+# Ignore crash dump files
+*.stackdump
 
-# Other generated files
+# Ignore log files
 *.log

@@ -14,19 +14,16 @@ const hasPlaceholderValues =
 
 // Enhanced validation and error handling
 if (hasPlaceholderValues) {
-  console.warn('⚠️ Supabase not configured - using placeholder values');
-  console.warn('Please update your .env file with actual Supabase credentials:');
-  console.warn('1. Create a Supabase project at https://supabase.com');
-  console.warn('2. Get your project URL and anon key from Settings > API');
-  console.warn('3. Replace placeholder values in .env file');
-  console.warn('VITE_SUPABASE_URL:', supabaseUrl ? '🔄 Placeholder detected' : '❌ Missing');
-  console.warn('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? '🔄 Placeholder detected' : '❌ Missing');
+  console.info('ℹ️ Supabase not configured - guest mode available');
+  console.info('To enable full authentication features:');
+  console.info('1. Create a Supabase project at https://supabase.com');
+  console.info('2. Get your project URL and anon key from Settings > API');
+  console.info('3. Update your .env file with actual Supabase credentials');
 }
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ Missing Supabase environment variables');
-  console.error('VITE_SUPABASE_URL:', supabaseUrl ? '✅ Set' : '❌ Missing');
-  console.error('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? '✅ Set' : '❌ Missing');
+  console.info('ℹ️ Supabase environment variables not configured');
+  console.info('App will run in guest mode with full functionality');
 }
 
 // Validate URL format only if not using placeholder values
@@ -105,10 +102,21 @@ const createSupabaseClient = () => {
 
 export const supabase = createSupabaseClient();
 
-// Get the current domain for redirects
+// Enhanced function to get the current domain for redirects
 const getCurrentDomain = () => {
   if (typeof window !== 'undefined') {
-    return window.location.origin;
+    // Get the full origin including protocol, hostname, and port
+    const origin = window.location.origin;
+    
+    // Check if we're running on a development server with a port
+    if (window.location.port) {
+      console.log(`🔗 Using redirect domain with port: ${origin}`);
+    }
+    
+    // Log the redirect URL for debugging
+    console.log(`🔗 Auth redirect URL: ${origin}/auth/callback`);
+    
+    return origin;
   }
   return 'http://localhost:5173'; // fallback for SSR
 };
@@ -311,6 +319,20 @@ export const auth = {
       
       if (error) {
         console.error('❌ Google OAuth error:', error);
+        
+        // Handle specific Google OAuth errors
+        if (error.message?.includes('provider is not enabled')) {
+          return { error: { ...error, message: 'Google sign-in is not enabled. Please configure Google OAuth in your Supabase project.' } };
+        }
+        
+        if (error.message?.includes('invalid configuration')) {
+          return { error: { ...error, message: 'Google OAuth configuration is invalid. Please check your redirect URLs in both Google Cloud Console and Supabase.' } };
+        }
+        
+        if (error.message?.includes('redirect_uri_mismatch')) {
+          return { error: { ...error, message: 'Redirect URI mismatch. Please ensure the redirect URI in Google Cloud Console matches the one in Supabase.' } };
+        }
+        
         return { data: null, error };
       }
       
@@ -318,6 +340,28 @@ export const auth = {
       return { data, error };
     } catch (error: any) {
       console.error('❌ Google OAuth network error:', error);
+      
+      // Enhanced error handling for network issues
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        return { 
+          data: null, 
+          error: { 
+            message: 'Connection to Google failed. Please check your internet connection and try again.',
+            code: 'network_error'
+          }
+        };
+      }
+      
+      if (error.message?.includes('popup closed')) {
+        return { 
+          data: null, 
+          error: { 
+            message: 'Google sign-in was canceled. Please try again.',
+            code: 'popup_closed'
+          }
+        };
+      }
+      
       return { 
         data: null, 
         error: { 
@@ -459,7 +503,7 @@ export const auth = {
       };
     }
 
-    return supabase.auth.onAuthStateChange(async (event, session) => {
+    return supabase.auth.onAuthStateChange(async (event: any, session: { user: { id: any; email: any; user_metadata: { name: any; avatar_url: any; }; email_confirmed_at: any; }; }) => {
       console.log('🔄 Auth state changed:', event, session?.user?.id);
       
       if (session?.user) {

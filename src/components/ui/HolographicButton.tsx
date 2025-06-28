@@ -50,6 +50,26 @@ export const HolographicButton: React.FC<HolographicButtonProps> = ({
     }
   };
 
+  // Filter out React event handlers that conflict with Framer Motion
+  const {
+    onAnimationStart,
+    onAnimationEnd,
+    onAnimationIteration,
+    onTransitionEnd,
+    onDrag,
+    onDragEnd,
+    onDragStart,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+    onPointerCancel,
+    onPointerEnter,
+    onPointerLeave,
+    onPointerOver,
+    onPointerOut,
+    ...buttonProps
+  } = props;
+
   return (
     <motion.button
       className={clsx(
@@ -75,7 +95,7 @@ export const HolographicButton: React.FC<HolographicButtonProps> = ({
       onMouseDown={() => setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
       onMouseLeave={() => setIsPressed(false)}
-      {...props}
+      {...buttonProps}
     >
       {/* Glow Effect */}
       {glow && !disabled && (

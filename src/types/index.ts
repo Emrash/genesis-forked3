@@ -140,6 +140,7 @@ export interface WizardState {
   blueprint?: Blueprint;
   credentials: Record<string, string>;
   errors: string[];
+  channels: any[];
 }
 
 export interface CanvasState {
@@ -171,12 +172,12 @@ export interface EnhancedWorkflowNode extends WorkflowNode {
 
 export interface SmartSuggestion {
   id: string;
-  type: string;
-  label: string;
-  description: string;
-  icon: React.ComponentType<any>;
-  confidence: number;
-  reasoning: string;
+  type?: string;
+  label?: string;
+  description?: string;
+  icon?: any;
+  confidence?: number;
+  reasoning?: string;
   position?: { x: number; y: number };
 }
 
@@ -252,7 +253,7 @@ export interface NodeTemplate {
   type: string;
   name: string;
   description: string;
-  icon: React.ComponentType<any>;
+  icon: any;
   color: string;
   category: 'Core' | 'Integration' | 'Logic' | 'Utility' | 'AI';
   defaultData: Record<string, any>;
@@ -291,6 +292,16 @@ export interface CanvasShortcut {
   action: string;
   description: string;
 }
+
+// Add missing uuid type for the deployment function
+export const uuid = {
+  v4: () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+};
 
 export interface CanvasPlugin {
   id: string;

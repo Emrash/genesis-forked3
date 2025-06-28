@@ -207,7 +207,7 @@ export const WelcomeStep: React.FC = () => {
                 >
                   <span className="flex items-center gap-3">
                     <Sparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />
-                    Begin Your Genesis
+                    Start Building
                     <motion.div
                       animate={{ x: [0, 5, 0] }}
                       transition={{ duration: 1.5, repeat: Infinity }}
@@ -223,7 +223,7 @@ export const WelcomeStep: React.FC = () => {
                 animate={{ opacity: [0.7, 1, 0.7] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
-                ✨ No coding required • 🚀 Deploy in minutes • 🧠 Infinite intelligence
+                ✨ No signup required • 🚀 Deploy in minutes • 🧠 Infinite intelligence
               </motion.p>
             </motion.div>
           </GlassCard>

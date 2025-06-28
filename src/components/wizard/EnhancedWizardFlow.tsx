@@ -5,6 +5,7 @@ import { MagicalBackground } from '../ui/MagicalBackground';
 import { WelcomeStep } from './steps/WelcomeStep';
 import { IntentStep } from './steps/IntentStep';
 import { BlueprintStep } from './steps/BlueprintStep';
+import { CanvasGenerationStep } from './steps/CanvasGenerationStep';
 import { EnhancedCanvasStep } from './steps/EnhancedCanvasStep';
 import { CredentialsStep } from './steps/CredentialsStep';
 import { SimulationStep } from './steps/SimulationStep';
@@ -14,6 +15,7 @@ const stepComponents = {
   welcome: WelcomeStep,
   intent: IntentStep,
   blueprint: BlueprintStep,
+  'canvas-generation': CanvasGenerationStep,
   canvas: EnhancedCanvasStep,
   credentials: CredentialsStep,
   simulation: SimulationStep,
@@ -24,6 +26,7 @@ const stepTitles = {
   welcome: "Welcome to Genesis",
   intent: "Share Your Vision",
   blueprint: "AI Blueprint",
+  "canvas-generation": "Canvas Generation",
   canvas: "Visual Canvas",
   credentials: "Connect Your Tools",
   simulation: "Test Your Guild",
@@ -34,9 +37,10 @@ const stepDescriptions = {
   welcome: "Enter the AI-native workspace revolution",
   intent: "Transform your vision into intelligent architecture",
   blueprint: "Review your AI-generated business structure",
+  "canvas-generation": "Visualize your workflow with AI",
   canvas: "Design and customize your workflow visually",
   credentials: "Connect the tools your agents will use",
-  simulation: "Test your guild in a safe environment",
+  simulation: "Test your AI workforce in a safe environment",
   deployment: "Launch your autonomous digital workforce"
 };
 
@@ -152,17 +156,6 @@ export const EnhancedWizardFlow: React.FC = () => {
       </div>
 
       {/* Phase 2 Badge */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 1 }}
-        className="fixed bottom-4 left-4 z-40"
-      >
-        <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 p-3 rounded-xl border border-white/20 backdrop-blur-sm">
-          <div className="text-white font-semibold text-sm">Phase 2</div>
-          <div className="text-white/80 text-xs">Canvas & Workflow Engine</div>
-        </div>
-      </motion.div>
     </MagicalBackground>
   );
 };

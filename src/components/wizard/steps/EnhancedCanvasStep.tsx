@@ -20,7 +20,18 @@ import {
   BarChart,
   Workflow,
   Star,
-  Command
+  Command,
+  Bot,
+  Clock,
+  Database,
+  DollarSign,
+  FileText,
+  Globe,
+  Heart,
+  Mail,
+  MessageSquare,
+  Share2,
+  Activity
 } from 'lucide-react';
 import { useWizardStore } from '../../../stores/wizardStore';
 import { useEnhancedCanvasStore } from '../../../stores/enhancedCanvasStore';
@@ -28,9 +39,15 @@ import { EnhancedQuantumCanvas } from '../../canvas/EnhancedQuantumCanvas';
 import { GlassCard } from '../../ui/GlassCard';
 import { HolographicButton } from '../../ui/HolographicButton';
 import { VoiceInterface } from '../../voice/VoiceInterface';
-import { SimulationLab } from '../../simulation/SimulationLab';
+import { WorkflowMonitoringDashboard } from '../../monitoring/WorkflowMonitoringDashboard';
+import { AgentDebugConsole } from '../../debugging/AgentDebugConsole';
+import { AgentCommunicationVisualizer } from '../../visualization/AgentCommunicationVisualizer';
+import { SimulationLab } from '../../simulation/SimulationLab'; 
+import { ReactFlowProvider } from '@xyflow/react';
 import { Node, Edge } from '@xyflow/react';
-import { Blueprint } from '../../../types';
+import { Blueprint, SmartSuggestion } from '../../../types';
+import { useCanvas } from '../../../hooks/useCanvas';
+import { canvasService } from '../../../services/canvasService';
 
 export const EnhancedCanvasStep: React.FC = () => {
   const { blueprint, setStep } = useWizardStore();
@@ -51,26 +68,57 @@ export const EnhancedCanvasStep: React.FC = () => {
   } = useEnhancedCanvasStore();
 
   const [showTutorial, setShowTutorial] = useState(false);
-  const [activeFeature, setActiveFeature] = useState<string | null>(null);
+  const [activeFeature, setActiveFeature] = useState<string | null>(null); 
+  const [activeView, setActiveView] = useState<'canvas' | 'simulation' | 'monitoring' | 'debugging' | 'visualization'>('canvas');
   const [voiceEnabled, setVoiceEnabled] = useState(false);
-  const [showSimulation, setShowSimulation] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [canvasInitialized, setCanvasInitialized] = useState(false);
+  const [loadingCanvas, setLoadingCanvas] = useState(false);
+  
+  // Get canvas methods from custom hook
+  const {
+    nodes: canvasNodes,
+    edges: canvasEdges,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    saveCanvas,
+    executeWorkflow,
+    isLoading,
+    error,
+    loadCanvasFromBlueprint
+  } = useCanvas();
 
+  // Initialize canvas from blueprint
   useEffect(() => {
-    // Show tutorial for first-time users
-    const hasSeenTutorial = localStorage.getItem('canvas-tutorial-seen');
-    if (!hasSeenTutorial) {
-      setShowTutorial(true);
+    if (blueprint && !canvasInitialized) {
+      setLoadingCanvas(true);
+      
+      // Load canvas from blueprint
+      loadCanvasFromBlueprint()
+        .then(() => {
+          setCanvasInitialized(true);
+          
+          // Show tutorial for first-time users
+          const hasSeenTutorial = localStorage.getItem('canvas-tutorial-seen');
+          if (!hasSeenTutorial) {
+            setShowTutorial(true);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to generate canvas:', err);
+        })
+        .finally(() => {
+          setLoadingCanvas(false);
+        });
     }
-  }, []);
-
-  // Generate canvas nodes and edges from blueprint
+  }, [blueprint, canvasInitialized]);
+  
+  // Function to generate canvas from blueprint
   const generateCanvasFromBlueprint = useCallback((blueprint: Blueprint) => {
-    if (!blueprint || !blueprint.suggested_structure) return;
+    if (!blueprint) return;
     
-    console.log('🎨 Generating canvas from blueprint:', blueprint.id);
-    
+    console.log('🎨 Generating canvas from blueprint in EnhancedCanvasStep');
     const newNodes: Node[] = [];
     const newEdges: Edge[] = [];
     
@@ -98,7 +146,7 @@ export const EnhancedCanvasStep: React.FC = () => {
       
       // Determine agent icon based on role
       const getAgentIcon = (role: string) => {
-        const roleIcons: Record<string, any> = {
+        const roleKeywords = {
           'analyst': BarChart,
           'support': MessageSquare,
           'sales': DollarSign,
@@ -116,12 +164,14 @@ export const EnhancedCanvasStep: React.FC = () => {
           'specialist': Target,
         };
 
-        // Find a matching role keyword
-        const roleKey = Object.keys(roleIcons).find(key => 
-          role.toLowerCase().includes(key)
-        );
+        // Find matching role keyword
+        for (const keyword in roleKeywords) {
+          if (role.toLowerCase().includes(keyword)) {
+            return roleKeywords[keyword as keyof typeof roleKeywords];
+          }
+        }
 
-        return roleIcons[roleKey || 'specialist'] || Bot;
+        return Bot;
       };
       
       // Determine agent color
@@ -137,9 +187,9 @@ export const EnhancedCanvasStep: React.FC = () => {
         return colors[index % colors.length];
       };
       
-      // Determine agent personality
+      // Get agent personality based on role
       const getAgentPersonality = (role: string) => {
-        const personalities: Record<string, string> = {
+        const personalities = {
           'analyst': 'Data-driven, analytical, precise with strategic insights',
           'support': 'Empathetic, patient, solution-focused with customer care',
           'sales': 'Persuasive, relationship-focused, results-oriented',
@@ -148,14 +198,17 @@ export const EnhancedCanvasStep: React.FC = () => {
           'operations': 'Efficient, process-oriented, optimization-focused',
         };
         
-        const roleKey = Object.keys(personalities).find(key => 
-          role.toLowerCase().includes(key)
-        );
+        // Find matching personality
+        for (const keyword in personalities) {
+          if (role.toLowerCase().includes(keyword)) {
+            return personalities[keyword as keyof typeof personalities];
+          }
+        }
         
-        return personalities[roleKey || 'analyst'] || 'Professional, intelligent, and goal-oriented';
+        return 'Professional, intelligent, and goal-oriented';
       };
       
-      const agentNode: Node = {
+      const agentNode = {
         id: `agent-${index + 1}`,
         type: 'agent',
         position: { 
@@ -202,39 +255,39 @@ export const EnhancedCanvasStep: React.FC = () => {
 
     // Create workflow action nodes
     const getWorkflowIcon = (triggerType: string) => {
-      const triggerIcons: Record<string, any> = {
+      const triggerIcons = {
         'schedule': Clock,
         'webhook': Globe,
         'manual': Play,
         'event': Zap,
       };
-      return triggerIcons[triggerType] || Workflow;
+      return triggerIcons[triggerType as keyof typeof triggerIcons] || Workflow;
     };
 
     // Get workflow color
     const getWorkflowColor = (triggerType: string) => {
-      const triggerColors: Record<string, string> = {
+      const triggerColors = {
         'schedule': 'from-blue-500 to-indigo-500',
         'webhook': 'from-green-500 to-emerald-500',
         'manual': 'from-purple-500 to-violet-500',
         'event': 'from-yellow-500 to-orange-500',
       };
-      return triggerColors[triggerType] || 'from-gray-500 to-slate-500';
+      return triggerColors[triggerType as keyof typeof triggerColors] || 'from-gray-500 to-slate-500';
     };
 
     // Map trigger type to action type
     const mapTriggerTypeToActionType = (triggerType: string) => {
-      const mapping: Record<string, string> = {
+      const mapping = {
         'schedule': 'database',
         'webhook': 'api',
         'manual': 'notification',
         'event': 'webhook',
       };
-      return mapping[triggerType] || 'api';
+      return mapping[triggerType as keyof typeof mapping] || 'api';
     };
 
     blueprint.suggested_structure.workflows.forEach((workflow, index) => {
-      const workflowNode: Node = {
+      const workflowNode = {
         id: `workflow-${index + 1}`,
         type: 'action',
         position: { 
@@ -271,15 +324,16 @@ export const EnhancedCanvasStep: React.FC = () => {
     setWorkflowNodes(newNodes);
     setWorkflowEdges(newEdges);
     setCanvasInitialized(true);
-    
   }, [setWorkflowNodes, setWorkflowEdges]);
   
   // Initialize canvas when blueprint is loaded
   useEffect(() => {
     if (blueprint && !canvasInitialized) {
+      console.log("Initializing canvas from blueprint directly");
       generateCanvasFromBlueprint(blueprint);
     }
   }, [blueprint, canvasInitialized, generateCanvasFromBlueprint]);
+  
   const handleSaveCanvas = (nodes: any[], edges: any[]) => {
     console.log('💾 Enhanced Canvas saved:', { 
       nodes: nodes.length, 
@@ -458,35 +512,66 @@ export const EnhancedCanvasStep: React.FC = () => {
         transition={{ duration: 0.8, delay: 0.3 }}
         className="mb-12"
       >
-        {!showSimulation ? (
-          <GlassCard variant="intense" glow className="p-6 relative overflow-hidden">
-            {/* Canvas Performance Overlay */}
-            <div className="absolute top-4 right-4 z-10">
-              <div className="flex items-center space-x-2 text-xs text-white/70">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <span>Neural Network: {showNeuralNetwork ? 'Active' : 'Standby'}</span>
-              </div>
+        <GlassCard variant="intense" glow className="p-6 relative overflow-hidden">
+          {/* Canvas Performance Overlay */}
+          <div className="absolute top-4 right-4 z-10">
+            <div className="flex items-center space-x-2 text-xs text-white/70">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+              <span>Neural Network: {showNeuralNetwork ? 'Active' : 'Standby'}</span>
             </div>
+          </div>
 
-            <div className="h-[700px] rounded-xl overflow-hidden relative">
+          <div className="h-[700px] rounded-xl overflow-hidden relative">
+            {activeView === 'canvas' && (
               <EnhancedQuantumCanvas 
                 blueprint={blueprint}
                 onSave={handleSaveCanvas}
                 onExecute={handleExecuteWorkflow}
                 initialNodes={workflowNodes}
                 initialEdges={workflowEdges}
+                onNodeSelect={(nodeId) => setSelectedAgent(nodeId)}
               />
-            </div>
-          </GlassCard>
-        ) : (
-          <SimulationLab
-            guildId={blueprint?.suggested_structure.guild_name || 'test-guild'}
-            agents={blueprint?.suggested_structure.agents || []}
-            onResults={(results) => {
-              console.log('✅ Simulation completed:', results);
-            }}
-          />
-        )}
+            )}
+            
+            {activeView === 'simulation' && (
+              <EnhancedSimulationLab
+                guildId={blueprint?.suggested_structure.guild_name || 'test-guild'}
+                agents={blueprint?.suggested_structure.agents || []}
+                advanced={true}
+              />
+            )}
+            
+            {activeView === 'monitoring' && (
+              <WorkflowMonitoringDashboard
+                workflowId={'flow-1'}
+                nodes={workflowNodes}
+                edges={workflowEdges}
+                onNodeSelect={(nodeId) => setSelectedAgent(nodeId)}
+              />
+            )}
+            
+            {activeView === 'debugging' && selectedAgent && (
+              <AgentDebugConsole
+                agentId={selectedAgent}
+                agentName={workflowNodes.find(node => node.id === selectedAgent)?.data?.label || 'Selected Agent'}
+                onClose={() => setActiveView('canvas')}
+              />
+            )}
+            
+            {activeView === 'visualization' && (
+              <AgentCommunicationVisualizer
+                agents={blueprint?.suggested_structure.agents.map(agent => ({
+                  id: `agent-${agent.name.toLowerCase().replace(/\s+/g, '-')}`,
+                  name: agent.name,
+                  role: agent.role,
+                  description: agent.description,
+                  status: 'active'
+                })) || []}
+                onAgentClick={(agentId) => setSelectedAgent(agentId)}
+              />
+            )}
+          </div>
+        </GlassCard>
       </motion.div>
 
       {/* Revolutionary Features Grid */}
@@ -501,7 +586,7 @@ export const EnhancedCanvasStep: React.FC = () => {
             icon: Brain,
             title: 'Neural Intelligence',
             description: 'AI-powered suggestions and auto-optimization',
-            features: ['Smart node suggestions', 'Auto-layout algorithms', 'Performance optimization', 'Error prevention'],
+            features: ['Smart node suggestions', 'Auto-layout algorithms', 'Performance optimization', 'Error prevention', 'Advanced debugging'],
             color: 'from-purple-500 to-pink-500',
             stats: '95% accuracy'
           },
@@ -509,7 +594,7 @@ export const EnhancedCanvasStep: React.FC = () => {
             icon: Users,
             title: 'Live Collaboration',
             description: 'Real-time multi-user design experience',
-            features: ['Live cursors', 'Conflict resolution', 'Version control', 'Team workspace'],
+            features: ['Live cursors', 'Conflict resolution', 'Version control', 'Team workspace', 'Agent communication'],
             color: 'from-blue-500 to-cyan-500',
             stats: 'Up to 10 users'
           },
@@ -517,7 +602,7 @@ export const EnhancedCanvasStep: React.FC = () => {
             icon: Zap,
             title: 'Quantum Execution',
             description: 'Lightning-fast workflow processing',
-            features: ['Real-time monitoring', 'Visual data flow', 'Performance metrics', 'Error recovery'],
+            features: ['Real-time monitoring', 'Visual data flow', 'Performance metrics', 'Error recovery', 'Advanced analytics'],
             color: 'from-emerald-500 to-teal-500',
             stats: '<100ms latency'
           }
@@ -582,10 +667,10 @@ export const EnhancedCanvasStep: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.7 }}
+        transition={{ duration: 0.6, delay: 0.6 }}
         className="mb-12"
       >
-        <GlassCard variant="medium" glow className="p-8">
+        <GlassCard variant="medium" glow className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
@@ -603,56 +688,76 @@ export const EnhancedCanvasStep: React.FC = () => {
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                icon: Lightbulb,
-                title: 'Smart Suggestions',
-                description: 'AI-powered workflow optimization',
-                active: smartSuggestions.length > 0,
-                action: () => console.log('Toggle suggestions')
-              },
-              {
-                icon: Palette,
-                title: 'Neural Visualization',
-                description: 'Advanced network overlay',
-                active: showNeuralNetwork,
-                action: () => setShowNeuralNetwork(!showNeuralNetwork)
-              },
-              {
-                icon: Shield,
-                title: 'Auto-save',
-                description: 'Continuous backup protection',
-                active: true,
-                action: () => console.log('Auto-save settings')
-              },
-              {
-                icon: BarChart,
-                title: 'Performance Monitor',
-                description: 'Real-time metrics dashboard',
-                active: canvasMode === 'debug',
-                action: () => setCanvasMode('debug')
-              }
-            ].map((control, index) => (
-              <motion.button
-                key={index}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.8 + index * 0.1 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={control.action}
-                className={`p-4 rounded-xl border text-left transition-all duration-200 ${
-                  control.active 
-                    ? 'bg-purple-500/20 border-purple-400/50 text-purple-300' 
-                    : 'bg-white/5 border-white/20 text-gray-300 hover:bg-white/10'
-                }`}
-              >
-                <control.icon className={`w-6 h-6 mb-3 ${control.active ? 'text-purple-400' : 'text-gray-400'}`} />
-                <div className="font-medium text-white mb-1">{control.title}</div>
-                <div className="text-xs text-gray-400">{control.description}</div>
-                <div className={`mt-2 w-2 h-2 rounded-full ${control.active ? 'bg-green-400' : 'bg-gray-600'}`} />
-              </motion.button>
-            ))}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setActiveView(activeView === 'simulation' ? 'canvas' : 'simulation')}
+              className={`p-4 rounded-xl border text-left transition-all duration-200 ${
+                activeView === 'simulation'
+                  ? 'bg-purple-500/20 border-purple-400/50 text-purple-300'
+                  : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
+              }`}
+            >
+              <Brain className={`w-6 h-6 mb-3 ${activeView === 'simulation' ? 'text-purple-400' : 'text-gray-400'}`} />
+              <div className="font-medium text-white mb-1">Simulation Lab</div>
+              <div className="text-xs text-gray-400">Test your AI workforce with advanced scenarios</div>
+              <div className={`mt-2 w-2 h-2 rounded-full ${activeView === 'simulation' ? 'bg-green-400' : 'bg-gray-600'}`} />
+            </motion.button>
+            
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setActiveView(activeView === 'monitoring' ? 'canvas' : 'monitoring')}
+              className={`p-4 rounded-xl border text-left transition-all duration-200 ${
+                activeView === 'monitoring'
+                  ? 'bg-blue-500/20 border-blue-400/50 text-blue-300'
+                  : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
+              }`}
+            >
+              <Activity className={`w-6 h-6 mb-3 ${activeView === 'monitoring' ? 'text-blue-400' : 'text-gray-400'}`} />
+              <div className="font-medium text-white mb-1">Monitoring Dashboard</div>
+              <div className="text-xs text-gray-400">Track execution performance and metrics</div>
+              <div className={`mt-2 w-2 h-2 rounded-full ${activeView === 'monitoring' ? 'bg-green-400' : 'bg-gray-600'}`} />
+            </motion.button>
+            
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => selectedAgent ? setActiveView(activeView === 'debugging' ? 'canvas' : 'debugging') : setActiveView('canvas')}
+              className={`p-4 rounded-xl border text-left transition-all duration-200 relative ${
+                selectedAgent === null
+                  ? 'opacity-50 bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
+                  : activeView === 'debugging'
+                  ? 'bg-green-500/20 border-green-400/50 text-green-300'
+                  : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
+              }`}
+            >
+              <Settings className={`w-6 h-6 mb-3 ${activeView === 'debugging' ? 'text-green-400' : 'text-gray-400'}`} />
+              <div className="font-medium text-white mb-1">Debug Console</div>
+              <div className="text-xs text-gray-400">Inspect agent state and operations</div>
+              <div className={`mt-2 w-2 h-2 rounded-full ${activeView === 'debugging' ? 'bg-green-400' : 'bg-gray-600'}`} />
+              {selectedAgent === null && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-xl">
+                  <div className="text-xs text-white bg-black/60 px-2 py-1 rounded">Select an agent first</div>
+                </div>
+              )}
+            </motion.button>
+            
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setActiveView(activeView === 'visualization' ? 'canvas' : 'visualization')}
+              className={`p-4 rounded-xl border text-left transition-all duration-200 ${
+                activeView === 'visualization'
+                  ? 'bg-orange-500/20 border-orange-400/50 text-orange-300'
+                  : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
+              }`}
+            >
+              <Users className={`w-6 h-6 mb-3 ${activeView === 'visualization' ? 'text-orange-400' : 'text-gray-400'}`} />
+              <div className="font-medium text-white mb-1">Agent Communication</div>
+              <div className="text-xs text-gray-400">Visualize message patterns between agents</div>
+              <div className={`mt-2 w-2 h-2 rounded-full ${activeView === 'visualization' ? 'bg-green-400' : 'bg-gray-600'}`} />
+            </motion.button>
           </div>
         </GlassCard>
       </motion.div>

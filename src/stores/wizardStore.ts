@@ -1,13 +1,13 @@
 import { create } from 'zustand';
-import type { WizardState, Blueprint } from '../types';
+import { type WizardState, type Blueprint, uuid } from '../types';
 import { apiMethods } from '../lib/api';
+import { deploymentService } from '../services/deploymentService';
 
 interface WizardStore extends WizardState {
   // State management
   setStep: (step: WizardState['step']) => void;
   setUserInput: (input: string) => void;
   setBlueprint: (blueprint: Blueprint) => void;
-  updateBlueprint: (updatedBlueprint: Partial<Blueprint>) => void;
   updateBlueprint: (updatedBlueprint: Partial<Blueprint>) => void;
   setCredentials: (credentials: Record<string, string>) => void;
   setSimulationResults: (results: any) => void;
@@ -20,6 +20,7 @@ interface WizardStore extends WizardState {
   generateBlueprint: () => Promise<void>;
   runSimulation: () => Promise<void>;
   deployGuild: () => Promise<void>;
+  getDeploymentStatus: (deploymentId: string) => Promise<any>;
   
   // Enhanced state
   isLoading: boolean;
@@ -28,6 +29,10 @@ interface WizardStore extends WizardState {
   
   // Utility
   reset: () => void;
+  
+  // Deployment info
+  channels: any[];
+  setChannels: (channels: any[]) => void;
 }
 
 const initialState: WizardState = {
@@ -35,7 +40,8 @@ const initialState: WizardState = {
   user_input: '',
   blueprint: undefined,
   credentials: {},
-  errors: []
+  errors: [],
+  channels: []
 };
 
 export const useWizardStore = create<WizardStore>((set, get) => ({
@@ -43,6 +49,9 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
   isLoading: false,
   simulationResults: undefined,
   deploymentId: undefined,
+  channels: [],
+  
+  setChannels: (channels) => set({ channels }),
 
   setStep: (step) => {
     console.log('🔄 Wizard step changed:', step);
@@ -344,6 +353,23 @@ Always think strategically, act efficiently, and communicate clearly.`,
       set({ isLoading: false });
     }
   },
+  
+  getDeploymentStatus: async (deploymentId: string) => {
+    try {
+      set({ isLoading: true, errors: [] });
+      console.log('🔍 Checking deployment status:', deploymentId);
+      
+      const status = await deploymentService.getDeploymentStatus(deploymentId);
+      
+      set({ isLoading: false });
+      return status;
+    } catch (error: any) {
+      console.error('❌ Failed to get deployment status:', error);
+      get().addError(error.message || 'Failed to get deployment status');
+      set({ isLoading: false });
+      throw error;
+    }
+  },
 
   reset: () => {
     console.log('🔄 Wizard reset');
@@ -351,7 +377,8 @@ Always think strategically, act efficiently, and communicate clearly.`,
       ...initialState,
       isLoading: false,
       simulationResults: undefined,
-      deploymentId: undefined
+      deploymentId: undefined,
+      channels: []
     });
     
     // Also clear localStorage items related to wizard state

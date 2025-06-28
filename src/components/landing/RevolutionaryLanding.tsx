@@ -152,7 +152,7 @@ export const RevolutionaryLanding: React.FC<RevolutionaryLandingProps> = ({
             Sign In
           </HolographicButton>
           <HolographicButton variant="primary" glow onClick={onGetStarted}>
-            Enter Genesis
+            Enter as Guest
           </HolographicButton>
         </motion.div>
       </nav>
@@ -451,7 +451,7 @@ export const RevolutionaryLanding: React.FC<RevolutionaryLandingProps> = ({
                 className="text-xl px-12 py-6"
               >
                 <Sparkles className="w-6 h-6 mr-3" />
-                Begin Your Genesis
+                Try GenesisOS Now
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -463,7 +463,7 @@ export const RevolutionaryLanding: React.FC<RevolutionaryLandingProps> = ({
             </motion.div>
 
             <p className="mt-8 text-sm text-gray-400">
-              🚀 Deploy in 3 minutes • 🧠 AI-powered from genesis • ⚡ Infinite scale guaranteed
+              🚀 No signup required • 🧠 AI-powered experience • ⚡ Try all features instantly
             </p>
           </motion.div>
         </div>
@@ -482,8 +482,16 @@ export const RevolutionaryLanding: React.FC<RevolutionaryLandingProps> = ({
             </div>
           </div>
           <p className="text-gray-400 text-sm">
-            © 2025 GenesisOS. Crafting divine-level business automation. Built with love and AI.
+            © 2025 GenesisOS. Crafting divine-level business automation.
           </p>
+          <a
+            href="https://bolt.new"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gray-400 hover:text-white transition-colors text-sm"
+          >
+            Built with Bolt.new
+          </a>
         </div>
       </footer>
     </MagicalBackground>

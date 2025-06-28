@@ -13,13 +13,14 @@ export const BackendStatus: React.FC<BackendStatusProps> = ({ className = '' }) 
   const [lastCheck, setLastCheck] = useState<Date>(new Date());
   const [mode, setMode] = useState<string>('');
   const [suggestedUrl, setSuggestedUrl] = useState<string>('');
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(true); // Start minimized by default
   const [showDetails, setShowDetails] = useState(false);
   const [phase, setPhase] = useState<string>('1');
 
   const checkConnection = async () => {
     setStatus('testing');
-    
+    console.log("Checking backend connection...");
+
     try {
       const result = await testBackendConnection();
       
@@ -68,7 +69,7 @@ export const BackendStatus: React.FC<BackendStatusProps> = ({ className = '' }) 
     } catch (error: any) {
       console.error('Connection check error:', error);
       
-      // Direct error handling for mixed content
+      // Enhanced error handling for connection issues
       if (error.message?.includes('Mixed Content Error') || error.isMixedContent) {
         setStatus('mixed-content');
         setMode('Protocol Mismatch');
@@ -91,6 +92,7 @@ export const BackendStatus: React.FC<BackendStatusProps> = ({ className = '' }) 
         setStatus('failed');
         setMode('Error');
       }
+      console.log("Backend connection failed:", error);
     }
     
     setLastCheck(new Date());
@@ -98,6 +100,7 @@ export const BackendStatus: React.FC<BackendStatusProps> = ({ className = '' }) 
 
   useEffect(() => {
     checkConnection();
+    console.log("Initial backend check complete.");
     
     // Check every 30 seconds
     const interval = setInterval(checkConnection, 30000);

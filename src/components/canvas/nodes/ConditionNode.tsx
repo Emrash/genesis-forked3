@@ -1,24 +1,55 @@
-import React, { memo } from 'react';
-import { Handle, Position, NodeProps, Node } from '@xyflow/react';
+import React, { memo, useCallback, useState } from 'react';
+import { Handle, Position } from '@xyflow/react';
 import { motion } from 'framer-motion';
-import { GitBranch, Target, MoreHorizontal, Check, X } from 'lucide-react';
+import { GitBranch, Target, MoreHorizontal, Check, X, AlertCircle, Clock } from 'lucide-react';
 import { GlassCard } from '../../ui/GlassCard';
+import type { ConditionNodeData } from '../../../types/canvas';
 
-interface ConditionNodeData {
-  label: string;
-  description: string;
-  conditionType: 'if' | 'switch' | 'filter' | 'gate';
-  condition: string;
-  icon: React.ComponentType<any>;
-  color: string;
-  status: 'ready' | 'evaluating' | 'true' | 'false' | 'error';
+// Component with proper typing matching ActionNode pattern
+interface ConditionNodeProps {
+  data: ConditionNodeData;
+  selected?: boolean;
+  id: string;
+  dragging?: boolean;
+  type?: string;
+  xPos: number;
+  yPos: number;
+  zIndex: number;
+  isConnectable?: boolean;
+  sourcePosition?: Position;
+  targetPosition?: Position;
 }
 
-// Create a type that extends NodeProps but with required width/height
-type ConditionNodeProps = NodeProps<ConditionNodeData>;
+export const ConditionNode = memo<ConditionNodeProps>(({ data, selected = false }) => {
+  // Null check and proper typing for data
+  if (!data) {
+    return (
+      <GlassCard variant="medium" className="w-72 border-2 border-red-400">
+        <div className="p-4 text-center">
+          <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
+          <p className="text-red-300">Invalid Condition Node</p>
+        </div>
+      </GlassCard>
+    );
+  }
 
-export const ConditionNode = memo<ConditionNodeProps>(({ data, selected }) => {
-  const getStatusColor = (status: string) => {
+  const [showDetails, setShowDetails] = useState(false);
+
+  // Type assertion to ensure TypeScript knows the correct type
+  const nodeData = data as ConditionNodeData;
+
+  // Safe destructuring with proper typing and defaults
+  const {
+    label = 'Untitled Condition',
+    description = 'No description available',
+    conditionType = 'if',
+    condition = 'value > threshold',
+    status = 'ready',
+    color = 'from-orange-500 to-red-600',
+    icon: ConditionIcon
+  } = nodeData;
+
+  const getStatusColor = useCallback((status: ConditionNodeData['status']) => {
     switch (status) {
       case 'ready': return 'border-orange-400 shadow-orange-400/30';
       case 'evaluating': return 'border-yellow-400 shadow-yellow-400/30 animate-pulse';
@@ -27,7 +58,24 @@ export const ConditionNode = memo<ConditionNodeProps>(({ data, selected }) => {
       case 'error': return 'border-red-500 shadow-red-500/30';
       default: return 'border-gray-400 shadow-gray-400/30';
     }
-  };
+  }, []);
+
+  const getConditionIcon = useCallback((conditionType: ConditionNodeData['conditionType']) => {
+    switch (conditionType) {
+      case 'if': return GitBranch;
+      case 'switch': return Target;
+      case 'filter': return GitBranch;
+      case 'gate': return Target;
+      default: return GitBranch;
+    }
+  }, []);
+
+  const handleMoreClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowDetails(!showDetails);
+  }, [showDetails]);
+
+  const IconComponent = ConditionIcon || getConditionIcon(conditionType);
 
   return (
     <motion.div
@@ -42,12 +90,13 @@ export const ConditionNode = memo<ConditionNodeProps>(({ data, selected }) => {
         type="target"
         position={Position.Left}
         className="w-3 h-3 bg-orange-400 border-2 border-white shadow-lg"
+        style={{ zIndex: 10 }}
       />
 
       {/* Main Node */}
       <GlassCard 
         variant="medium" 
-        className={`w-72 border-2 ${getStatusColor(data.status)} ${
+        className={`w-72 border-2 ${getStatusColor(status)} ${
           selected ? 'ring-2 ring-orange-400/50' : ''
         } transition-all duration-200`}
       >
@@ -56,42 +105,49 @@ export const ConditionNode = memo<ConditionNodeProps>(({ data, selected }) => {
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center space-x-3">
               <motion.div 
-                className={`w-12 h-12 rounded-xl bg-gradient-to-br ${data.color} flex items-center justify-center relative overflow-hidden`}
+                className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center relative overflow-hidden`}
                 whileHover={{ scale: 1.1, rotate: 5 }}
                 transition={{ type: "spring", stiffness: 400 }}
               >
                 {/* Animated background */}
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+                  animate={{ rotate: status === 'evaluating' ? 360 : 0 }}
+                  transition={{ 
+                    duration: 7, 
+                    repeat: status === 'evaluating' ? Infinity : 0, 
+                    ease: "linear" 
+                  }}
                 />
-                <GitBranch className="w-6 h-6 text-white relative z-10" />
+                <IconComponent className="w-6 h-6 text-white relative z-10" />
               </motion.div>
 
               <div className="flex-1">
                 <h3 className="text-white font-semibold text-sm leading-tight">
-                  {data.label}
+                  {label}
                 </h3>
                 <p className="text-orange-300 text-xs capitalize">
-                  {data.conditionType} condition
+                  {conditionType} condition
                 </p>
               </div>
             </div>
 
             <div className="flex items-center space-x-1">
               <div className="flex items-center space-x-1 px-2 py-1 bg-white/10 rounded-full">
-                {data.status === 'true' && <Check className="w-3 h-3 text-green-400" />}
-                {data.status === 'false' && <X className="w-3 h-3 text-red-400" />}
-                {data.status === 'evaluating' && <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />}
-                {data.status === 'ready' && <div className="w-2 h-2 bg-orange-400 rounded-full" />}
-                <span className="text-xs text-white capitalize">{data.status}</span>
+                {status === 'true' && <Check className="w-3 h-3 text-green-400" />}
+                {status === 'false' && <X className="w-3 h-3 text-red-400" />}
+                {status === 'evaluating' && <Clock className="w-3 h-3 text-yellow-400 animate-spin" />}
+                {status === 'ready' && <div className="w-2 h-2 bg-orange-400 rounded-full" />}
+                {status === 'error' && <div className="w-2 h-2 bg-red-400 rounded-full" />}
+                <span className="text-xs text-white capitalize">{status}</span>
               </div>
               
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
+                onClick={handleMoreClick}
                 className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+                aria-label="More options"
               >
                 <MoreHorizontal className="w-3 h-3 text-white" />
               </motion.button>
@@ -100,34 +156,42 @@ export const ConditionNode = memo<ConditionNodeProps>(({ data, selected }) => {
 
           {/* Description */}
           <p className="text-gray-300 text-xs mb-3 leading-relaxed">
-            {data.description}
+            {description}
           </p>
 
-          {/* Condition Logic */}
+          {/* Condition Details */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-gray-400 text-xs font-medium">Condition</span>
+              <span className="text-gray-400 text-xs font-medium">Condition Details</span>
               <span className="text-orange-400 text-xs">
-                {data.conditionType.toUpperCase()}
+                {conditionType.toUpperCase()} Logic
               </span>
             </div>
 
+            {/* Condition Preview */}
             <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-              <div className="text-white text-xs font-mono">
-                {data.condition || "value > threshold"}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-400">Expression</span>
+                  <span className="text-xs text-white font-mono">{condition}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-400">Type</span>
+                  <span className="text-xs text-white">{conditionType}</span>
+                </div>
               </div>
-              
+
               {/* Visual representation of branching */}
               <div className="mt-3 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <div className={`w-3 h-3 rounded-full ${
-                    data.status === 'true' ? 'bg-green-400' : 'bg-gray-400'
+                  <div className={`w-3 h-3 rounded-full transition-colors duration-200 ${
+                    status === 'true' ? 'bg-green-400' : 'bg-gray-400'
                   }`} />
                   <span className="text-xs text-gray-300">True path</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className={`w-3 h-3 rounded-full ${
-                    data.status === 'false' ? 'bg-red-400' : 'bg-gray-400'
+                  <div className={`w-3 h-3 rounded-full transition-colors duration-200 ${
+                    status === 'false' ? 'bg-red-400' : 'bg-gray-400'
                   }`} />
                   <span className="text-xs text-gray-300">False path</span>
                 </div>
@@ -135,8 +199,8 @@ export const ConditionNode = memo<ConditionNodeProps>(({ data, selected }) => {
             </div>
           </div>
 
-          {/* Evaluation Progress */}
-          {data.status === 'evaluating' && (
+          {/* Progress Indicator */}
+          {status === 'evaluating' && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -147,11 +211,75 @@ export const ConditionNode = memo<ConditionNodeProps>(({ data, selected }) => {
                   className="h-1 bg-gradient-to-r from-orange-400 to-yellow-400 rounded-full"
                   initial={{ width: "0%" }}
                   animate={{ width: "100%" }}
-                  transition={{ duration: 1, ease: "easeInOut" }}
+                  transition={{ duration: 2, ease: "easeInOut", repeat: Infinity }}
                 />
               </div>
-              <div className="text-center text-xs text-gray-400 mt-1">
-                Evaluating condition...
+              <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <span>Evaluating...</span>
+                <span>Processing</span>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Success Indicator */}
+          {(status === 'true' || status === 'false') && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mt-3 pt-3 border-t border-white/10"
+            >
+              <div className={`flex items-center justify-center space-x-2 ${
+                status === 'true' ? 'text-green-400' : 'text-red-400'
+              }`}>
+                {status === 'true' ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <X className="w-4 h-4" />
+                )}
+                <span className="text-xs font-medium">
+                  Condition evaluated: {status}
+                </span>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Error Indicator */}
+          {status === 'error' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mt-3 pt-3 border-t border-white/10"
+            >
+              <div className="flex items-center justify-center space-x-2 text-red-400">
+                <AlertCircle className="w-4 h-4" />
+                <span className="text-xs font-medium">Condition evaluation failed</span>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Details Panel */}
+          {showDetails && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-3 pt-3 border-t border-white/10"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex space-x-2">
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center hover:bg-orange-500/30 transition-colors"
+                    aria-label="Test condition"
+                  >
+                    <Target className="w-3 h-3 text-orange-400" />
+                  </motion.button>
+                </div>
+                
+                <span className="text-xs text-gray-400">
+                  Condition ID: {label.toLowerCase().replace(/\s+/g, '-')}
+                </span>
               </div>
             </motion.div>
           )}
@@ -178,16 +306,34 @@ export const ConditionNode = memo<ConditionNodeProps>(({ data, selected }) => {
         type="source"
         position={Position.Right}
         id="true"
-        style={{ top: '30%' }}
         className="w-3 h-3 bg-green-400 border-2 border-white shadow-lg"
+        style={{ 
+          right: -6, 
+          top: '35%',
+          zIndex: 10
+        }}
       />
       <Handle
         type="source"
         position={Position.Right}
         id="false"
-        style={{ top: '70%' }}
         className="w-3 h-3 bg-red-400 border-2 border-white shadow-lg"
+        style={{ 
+          right: -6, 
+          top: '65%',
+          zIndex: 10
+        }}
       />
+
+      {/* Handle Labels */}
+      <div className="absolute right-2 top-[30%] text-xs text-green-300 pointer-events-none">
+        T
+      </div>
+      <div className="absolute right-2 top-[60%] text-xs text-red-300 pointer-events-none">
+        F
+      </div>
     </motion.div>
   );
 });
+
+ConditionNode.displayName = 'ConditionNode';

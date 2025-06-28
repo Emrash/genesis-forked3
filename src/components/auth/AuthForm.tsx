@@ -8,9 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 interface AuthFormProps {
   onBack: () => void;
   initialMode?: 'signin' | 'signup';
+  initialError?: string | null;
 }
 
-export const AuthForm: React.FC<AuthFormProps> = ({ onBack, initialMode = 'signin' }) => {
+export const AuthForm: React.FC<AuthFormProps> = ({ 
+  onBack, 
+  initialMode = 'signin',
+  initialError = null 
+}) => {
   const [mode, setMode] = useState<'signin' | 'signup'>(initialMode);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -18,7 +23,9 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onBack, initialMode = 'signi
     password: '',
     name: ''
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>(
+    initialError ? { submit: initialError } : {}
+  );
   
   const { 
     signIn, 

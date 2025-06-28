@@ -3,7 +3,11 @@ import { UserCircle, LogOut, Settings, Plus } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { Button } from '../ui/Button';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  isGuest?: boolean;
+}
+
+export const Header: React.FC<HeaderProps> = ({ isGuest = false }) => {
   const { user, signOut } = useAuthStore();
 
   return (
@@ -43,8 +47,12 @@ export const Header: React.FC = () => {
             <div className="flex items-center space-x-3">
               <UserCircle className="w-8 h-8 text-gray-600" />
               <div className="hidden md:block">
-                <p className="text-sm font-medium text-gray-900">{user?.name || 'User'}</p>
-                <p className="text-xs text-gray-500">{user?.email}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {isGuest ? 'Guest User' : user?.name || 'User'}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {isGuest ? 'Guest Mode' : user?.email}
+                </p>
               </div>
             </div>
           </div>
@@ -53,7 +61,11 @@ export const Header: React.FC = () => {
             <Button variant="ghost" size="sm">
               <Settings className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={signOut}>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={isGuest ? () => window.location.reload() : signOut}
+            >
               <LogOut className="w-4 h-4" />
             </Button>
           </div>

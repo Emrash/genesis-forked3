@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Node, Edge } from '@xyflow/react';
+import { NodeData, CanvasEdge } from '../types/canvas';
 
 interface CanvasState {
   // Canvas mode
@@ -27,6 +28,10 @@ interface CanvasState {
   workflowEdges: Edge[];
   setWorkflowNodes: (nodes: Node[]) => void;
   setWorkflowEdges: (edges: Edge[]) => void;
+  
+  // Selected node
+  selectedNode: Node<NodeData> | null;
+  setSelectedNode: (node: Node<NodeData> | null) => void;
   
   // Auto-save
   lastSaved: Date | null;
@@ -74,8 +79,18 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   // Workflow state
   workflowNodes: [],
   workflowEdges: [],
-  setWorkflowNodes: (nodes) => set({ workflowNodes: nodes }),
-  setWorkflowEdges: (edges) => set({ workflowEdges: edges }),
+  setWorkflowNodes: (nodes) => {
+    console.log('Setting workflow nodes:', nodes.length);
+    set({ workflowNodes: nodes });
+  },
+  setWorkflowEdges: (edges) => {
+    console.log('Setting workflow edges:', edges.length);
+    set({ workflowEdges: edges });
+  },
+  
+  // Selected node
+  selectedNode: null,
+  setSelectedNode: (node) => set({ selectedNode: node }),
   
   // Auto-save
   lastSaved: null,
@@ -87,7 +102,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   addToHistory: (nodes, edges) => {
     const { history, historyIndex } = get();
     const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push({ nodes: [...nodes], edges: [...edges] });
+    newHistory.push({ 
+      nodes: JSON.parse(JSON.stringify(nodes)), 
+      edges: JSON.parse(JSON.stringify(edges))
+    });
     
     // Limit history to 50 entries
     if (newHistory.length > 50) {
@@ -102,7 +120,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   undo: () => {
     const { history, historyIndex } = get();
     if (historyIndex > 0) {
-      const newIndex = historyIndex - 1;
+      const newIndex = historyIndex - 1; 
       set({ historyIndex: newIndex });
       return history[newIndex];
     }
