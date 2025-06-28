@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "full-dev": "concurrently \"npm run dev\" \"npm run orchestrator:dev\" \"npm run agent:dev\"",
+    "orchestrator:dev": "cd orchestrator && npm run dev",
     "backend": "cd backend && source venv/bin/activate && python run.py",
     "backend:windows": "cd backend && venv\\Scripts\\activate && python run.py",
     "setup:backend": "cd backend && chmod +x setup.sh && ./setup.sh",
