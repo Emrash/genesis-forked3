@@ -1,25 +1,53 @@
-# Ignore Node.js dependency directories
+# Directories to ignore
 node_modules/
-orchestrator/node_modules/
-
-# Ignore Python virtual environment
-agents/agent_service/venv/
-
-# Ignore build output directories
 dist/
-orchestrator/dist/
+build/
+__pycache__/
+.git/
+.vscode/
 
-# Ignore environment variable files
+# Environment files
 .env
-agents/agent_service/.env
-orchestrator/.env
+.env.example
 
-# Ignore package lock files
+# Lock files and debug logs
 package-lock.json
+yarn.lock
+npm-debug.log
+yarn-debug.log
+
+# Documentation and setup files
+*.md
+setup.sh
+setup.bat
+setup.js
+orchestrator/setup.js
+agents/agent_service/setup.py
+agents/agent_service/setup.sh
+
+# Docker related files
+docker-compose.yml
+docker-compose.prod.yml
+Dockerfile.frontend
+Dockerfile.frontend.prod
+
+# Nginx configuration
+nginx.conf
+
+# Editor and build tool configurations
+eslint.config.js
+postcss.config.js
+tailwind.config.js
+tsconfig.json
+tsconfig.app.json
+tsconfig.node.json
+
+# Specific files within orchestrator
+orchestrator/.gitignore
 orchestrator/package-lock.json
 
-# Ignore crash dump files
-*.stackdump
+# Specific files within agents/agent_service
+agents/agent_service/__pycache__/
 
-# Ignore log files
-*.log
+# Supabase migration files (as they are static schema definitions)
+supabase/migrations/
