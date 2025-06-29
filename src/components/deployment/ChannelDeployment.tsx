@@ -195,100 +195,100 @@ export const ChannelDeployment: React.FC<ChannelDeploymentProps> = ({
               </div>
             </div>
           )}
-        </>
-      )}
-      
-      {/* Deployment Results */}
-      {deploymentResult && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-6 bg-white/5 p-4 rounded-lg border border-white/10"
-        >
-          <div className="flex items-center justify-center mb-4">
-            <Check className="w-5 h-5 text-green-400 mr-2" />
-            <h3 className="text-white font-medium flex items-center">
-              Deployment Complete
-            </h3>
-          </div>
           
-          <div className="space-y-3">
-            {deploymentResult.channels?.map((channel: any, index: number) => (
-              <div 
-                key={index}
-                className="flex items-center justify-between p-3 bg-white/10 rounded-lg"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="flex items-center">
-                    {channel.type === 'web' && <Globe className="w-5 h-5 text-blue-400" />}
-                    {channel.type === 'slack' && <MessagesSquare className="w-5 h-5 text-purple-400" />}
-                    {channel.type === 'email' && <Mail className="w-5 h-5 text-green-400" />}
-                    {channel.type === 'api' && <Code className="w-5 h-5 text-orange-400" />}
-                    {channel.type === 'discord' && <MessagesSquare className="w-5 h-5 text-indigo-400" />}
-                    
-                    <div>
-                      <div className="text-white">{channel.name}</div>
-                      <div className="text-xs text-gray-400">Status: {channel.status}</div>
-                    </div>
-                  </div>
-                </div>
-                
-                {channel.url && (
-                  <HolographicButton
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => window.open(channel.url, '_blank')}
+          {/* Deployment Results */}
+          {deploymentResult && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-6 bg-white/5 p-4 rounded-lg border border-white/10"
+            >
+              <div className="flex items-center justify-center mb-4">
+                <Check className="w-5 h-5 text-green-400 mr-2" />
+                <h3 className="text-white font-medium flex items-center">
+                  Deployment Complete
+                </h3>
+              </div>
+              
+              <div className="space-y-3">
+                {deploymentResult.channels?.map((channel: any, index: number) => (
+                  <div 
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-white/10 rounded-lg"
                   >
-                    <Globe className="w-4 h-4" />
+                    <div className="flex items-center space-x-3">
+                      <div className="flex items-center">
+                        {channel.type === 'web' && <Globe className="w-5 h-5 text-blue-400" />}
+                        {channel.type === 'slack' && <MessagesSquare className="w-5 h-5 text-purple-400" />}
+                        {channel.type === 'email' && <Mail className="w-5 h-5 text-green-400" />}
+                        {channel.type === 'api' && <Code className="w-5 h-5 text-orange-400" />}
+                        {channel.type === 'discord' && <MessagesSquare className="w-5 h-5 text-indigo-400" />}
+                        
+                        <div>
+                          <div className="text-white">{channel.name}</div>
+                          <div className="text-xs text-gray-400">Status: {channel.status}</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {channel.url && (
+                      <HolographicButton
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.open(channel.url, '_blank')}
+                      >
+                        <Globe className="w-4 h-4" />
+                      </HolographicButton>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Return to config button */}
+              <div className="mt-6 text-center">
+                <HolographicButton
+                  variant="ghost"
+                  onClick={() => {
+                    setActiveTab('config');
+                  }}
+                >
+                  Back to Configuration
+                </HolographicButton>
+                {deploymentResult && (
+                  <HolographicButton
+                    variant="outline"
+                    className="ml-3"
+                    onClick={() => {
+                      setActiveTab('manage');
+                    }}
+                  >
+                    Manage Channels
                   </HolographicButton>
                 )}
               </div>
-            ))}
-          </div>
-
-          {/* Return to config button */}
-          <div className="mt-6 text-center">
-            <HolographicButton
-              variant="ghost"
-              onClick={() => {
-                setActiveTab('config');
-              }}
-            >
-              Back to Configuration
-            </HolographicButton>
-            {deploymentResult && (
-              <HolographicButton
-                variant="outline"
-                className="ml-3"
-                onClick={() => {
-                  setActiveTab('manage');
-                }}
-              >
-                Manage Channels
-              </HolographicButton>
-            )}
-          </div>
+            </motion.div>
+          )}
         </>
       ) : (
-        <>
-          {/* Manage tab content */}
-          <ChannelIntegration 
-            guildId={guildId}
-            guildName={guildName}
-            channels={deploymentResult?.channels || []}
-          />
-          
-          <div className="mt-6 text-center">
-            <HolographicButton
-              variant="outline"
-              onClick={() => {
-                setActiveTab('config');
-              }}
-            >
-              Edit Channel Configuration
-            </HolographicButton>
-          </div>
-        </>
+        /* Manage tab content */
+        <ChannelIntegration 
+          guildId={guildId}
+          guildName={guildName}
+          channels={deploymentResult?.channels || []}
+        />
+      )}
+      
+      {activeTab === 'manage' && (
+        <div className="mt-6 text-center">
+          <HolographicButton
+            variant="outline"
+            onClick={() => {
+              setActiveTab('config');
+            }}
+          >
+            Edit Channel Configuration
+          </HolographicButton>
+        </div>
       )}
     </GlassCard>
   );
