@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ReactFlowProvider } from '@xyflow/react';
-import { ReactFlowProvider } from '@xyflow/react';
 import { ArrowRight, Edit3, Play, Save, Sparkles, Brain, Zap, Target, Settings, Users, 
   Rocket, BarChart, Workflow, Star, Command, Bot, Clock, Database, DollarSign, FileText, 
   Globe, Heart, Mail, MessageSquare, Share2, Activity } from 'lucide-react';
@@ -61,16 +60,15 @@ export const EnhancedCanvasStep: React.FC = () => {
   };
   
   return (
-    <ReactFlowProvider>
-      <div className="h-[calc(100vh-200px)]">
-        <div className="flex space-x-2 mb-4">
-          <HolographicButton
-            variant={selectedTab === 'design' ? 'primary' : 'ghost'}
-            onClick={() => setSelectedTab('design')}
-          >
-            <Workflow className="w-4 h-4 mr-2" />
-            Design
-          </HolographicButton>
+    <div className="h-[calc(100vh-200px)]">
+      <div className="flex space-x-2 mb-4">
+        <HolographicButton
+          variant={selectedTab === 'design' ? 'primary' : 'ghost'}
+          onClick={() => setSelectedTab('design')}
+        >
+          <Workflow className="w-4 h-4 mr-2" />
+          Design
+        </HolographicButton>
         
         <HolographicButton
           variant={selectedTab === 'monitor' ? 'primary' : 'ghost'}
@@ -143,32 +141,31 @@ export const EnhancedCanvasStep: React.FC = () => {
         </motion.div>
       </AnimatePresence>
       
-        {/* Bottom action buttons */}
-        <div className="flex justify-between mt-6">
-          <HolographicButton
-            variant="outline"
-            onClick={() => setStep('blueprint')}
-          >
-            Go Back to Blueprint
-          </HolographicButton>
-          
-          <HolographicButton
-            onClick={handleSaveAndContinue}
-            glow
-          >
-            Continue to Credentials
-            <ArrowRight className="w-5 h-5 ml-2" />
-          </HolographicButton>
-        </div>
-      
-        {showVoiceInterface && (
-          <VoiceInterface 
-            isVisible={showVoiceInterface}
-            agentName={blueprint?.suggested_structure.guild_name || 'AI Assistant'}
-          />
-        )}
+      {/* Bottom action buttons */}
+      <div className="flex justify-between mt-6">
+        <HolographicButton
+          variant="outline"
+          onClick={() => setStep('blueprint')}
+        >
+          Go Back to Blueprint
+        </HolographicButton>
+        
+        <HolographicButton
+          onClick={handleSaveAndContinue}
+          glow
+        >
+          Continue to Credentials
+          <ArrowRight className="w-5 h-5 ml-2" />
+        </HolographicButton>
       </div>
-    </ReactFlowProvider>
+      
+      {showVoiceInterface && (
+        <VoiceInterface 
+          isVisible={showVoiceInterface}
+          agentName={blueprint?.suggested_structure.guild_name || 'AI Assistant'}
+        />
+      )}
+    </div>
   );
   
   return null;
