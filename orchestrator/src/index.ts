@@ -701,18 +701,18 @@ app.post(['/generateBlueprint', '/wizard/generate-blueprint', '/api/wizard/gener
               headers: { 'Content-Type': 'application/json' }
             });
             
-            if (response.data) {
-              console.log('✅ Blueprint generated via agent service:', response.data.id);
+                  error.response?.status || (error instanceof Error ? error.message : String(error)));
+                console.error('Failed to parse JSON from Gemini response:', jsonError instanceof Error ? jsonError.message : String(jsonError));
               return res.json(response.data);
             }
           } catch (endpointError) {
-            console.warn(`⚠️ Agent service endpoint ${endpoint} failed:`, endpointError.message);
-          }
+            console.warn(`⚠️ Agent service endpoint ${endpoint} failed:`, endpointError instanceof Error ? endpointError.message : String(endpointError));
+          console.warn('⚠️ Orchestrator not available, falling back to direct API call', orchestratorError instanceof Error ? orchestratorError.message : String(orchestratorError));
         }
         
         throw new Error('All agent service endpoints failed');
       } catch (agentError) {
-        console.warn('⚠️ Agent service unavailable, falling back to blueprint service:', agentError.message);
+        console.warn('⚠️ Agent service unavailable, falling back to blueprint service:', agentError instanceof Error ? agentError.message : String(agentError));
         
         // Fall back to local blueprint service
         const blueprint = await blueprintService.generateBlueprint(user_input);
