@@ -123,12 +123,12 @@ export const apiService = {
     endpoint?: string;
     method?: string;
     service?: string;
-  }): Promise<string> => {
+  }): Promise<{ command: string; error?: string }> => {
     try {
       // Gemini API configuration
       const GEMINI_API_KEY = 'AIzaSyA81SV6mvA9ShZasJgcVl4ps-YQm9DrKsc';
       const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
-      const GEMINI_MODEL = 'gemini-2.0-flash'; // Using faster model with higher rate limits
+      const GEMINI_MODEL = 'gemini-1.5-flash'; // Using faster model with higher rate limits
       
       // Create a prompt for Gemini to generate a curl command
       const prompt = `Generate a curl command for the following API request:
@@ -169,24 +169,19 @@ Please provide a complete, working curl command with proper formatting, headers,
         const curlMatch = generatedText.match(/```(?:bash|sh)?\s*(curl .+?)```/s) || 
                          generatedText.match(/(curl .+?)(?:\n\n|$)/s);
         
-        if (curlMatch && curlMatch[1]) {
-          return curlMatch[1].trim();
-        }
-        
-        // If no curl command found in the formatted response, return the whole text
-        return generatedText.trim();
+        const curlCommand = curlMatch && curlMatch[1] ? curlMatch[1].trim() : generatedText.trim();
+        console.log('✅ Generated curl command successfully');
+        return { command: curlCommand };
       } catch (error) {
         console.error('Failed to generate curl with Gemini:', error);
         
         // Throw the error to enable proper fallback handling
         throw error;
       }
-    } catch (error) {
-      console.error('Error in curl generation:', error);
+    } catch (e: any) {
+      console.error('Failed to generate curl with Gemini:', e);
       
-      // Comprehensive fallback to programmatic generation
-      console.log('Falling back to programmatic cURL generation');
-      
+      // Try using fallback generation
       try {
         const method = apiInfo?.method || 'POST';
         const endpoint = apiInfo?.endpoint || 'https://api.example.com/endpoint';
@@ -226,11 +221,15 @@ Please provide a complete, working curl command with proper formatting, headers,
           curlCommand += ` \\\n  -d '{"query": "${description.replace(/"/g, '\\"')}"}'`;
         }
         
-        return curlCommand;
-      } catch (fallbackError) {
+        console.log('✅ Generated fallback curl command');
+        return { command: curlCommand };
+      } catch (innerError: any) {
         // Final fallback for any unexpected errors
-        console.error('All curl generation methods failed:', fallbackError);
-        return `# Error generating curl command\ncurl -X POST "https://api.example.com/endpoint" \\\n  -H "Content-Type: application/json" \\\n  -d '{"query": "${description.replace(/"/g, '\\"')}"}'`;
+        console.error('All curl generation methods failed:', innerError);
+        return { 
+          command: `# Error generating curl command\ncurl -X POST "https://api.example.com/endpoint" \\\n  -H "Content-Type: application/json" \\\n  -d '{"query": "${description.replace(/"/g, '\\"')}"}'`, 
+          error: e.message
+        };
       }
     }
   }
