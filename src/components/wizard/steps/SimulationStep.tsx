@@ -136,20 +136,7 @@ export const SimulationStep: React.FC = () => {
                     </HolographicButton>
                   </div>
                 ) : (
-                        <option value="gemini-flash">Gemini Flash (Default)</option>
-                        <option value="gemini-pro">Gemini Pro (Advanced)</option>
-                        <option value="claude-3-sonnet">Claude 3 Sonnet (Experimental)</option>
-                        <option value="gpt-4">GPT-4 (Premium)</option>
-                    
-                    <div className="mb-6">
-                        {selectedModel === 'gemini-flash' && "Fast, efficient responses. Good for most tasks."}
-                        {selectedModel === 'gemini-pro' && "Enhanced reasoning capabilities. Better for complex tasks."}
-                        {selectedModel === 'claude-3-sonnet' && "Experimental integration with Claude's capabilities."}
-                        {selectedModel === 'gpt-4' && "Premium tier with GPT-4's advanced intelligence."}
-                      </p>
-                    </div>
-
-                    <div className="bg-white/10 p-6 rounded-xl border border-white/20 mb-6">
+                  <div className="bg-white/10 p-6 rounded-xl border border-white/20 mb-6">
                       <h4 className="font-medium text-white mb-4">Simulation Settings</h4>
                       
                       <div className="space-y-6">
