@@ -3,20 +3,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BarChart, 
   MessageSquare, 
-  Users, 
   Clock, 
   AlertTriangle, 
   CheckCircle, 
   RefreshCw,
-  ArrowRight,
   ExternalLink,
   Globe,
   Mail,
   Code,
   Eye,
-  ChevronRight,
   ChevronDown,
-  Download
+  Download,
+  Users,
+  ArrowRight,
+  ChevronRight
 } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 import { HolographicButton } from '../ui/HolographicButton';
