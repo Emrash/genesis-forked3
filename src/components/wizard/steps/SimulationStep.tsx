@@ -136,7 +136,8 @@ export const SimulationStep: React.FC = () => {
                     </HolographicButton>
                   </div>
                 ) : (
-                  <div className="bg-white/10 p-6 rounded-xl border border-white/20 mb-6">
+                  <>
+                    <div className="bg-white/10 p-6 rounded-xl border border-white/20 mb-6">
                       <h4 className="font-medium text-white mb-4">Simulation Settings</h4>
                       
                       <div className="space-y-6">
@@ -243,7 +244,7 @@ export const SimulationStep: React.FC = () => {
                         </div>
                       </div>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
             ) : (
