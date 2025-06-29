@@ -4,7 +4,7 @@ import { apiMethods } from '../lib/api';
 // Gemini API configuration
 const GEMINI_API_KEY = 'AIzaSyA81SV6mvA9ShZasJgcVl4ps-YQm9DrKsc';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
-const GEMINI_MODEL = 'gemini-1.5-pro';
+const GEMINI_MODEL = 'gemini-2.0-flash'; // Updated to use more reliable model with higher throughput
 
 /**
  * Service for handling blueprint operations

@@ -11,7 +11,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
 // Gemini API configuration
 const GEMINI_API_KEY = 'AIzaSyA81SV6mvA9ShZasJgcVl4ps-YQm9DrKsc';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
-const GEMINI_MODEL = 'gemini-1.5-pro';
+const GEMINI_MODEL = 'gemini-2.0-flash'; // Updated to newer model that's less likely to hit rate limits
 
 // Remove trailing slash if present to prevent path issues
 const normalizedApiBaseUrl = API_BASE_URL.endsWith('/') 

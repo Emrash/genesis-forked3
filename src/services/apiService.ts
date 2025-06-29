@@ -128,7 +128,7 @@ export const apiService = {
       // Gemini API configuration
       const GEMINI_API_KEY = 'AIzaSyA81SV6mvA9ShZasJgcVl4ps-YQm9DrKsc';
       const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
-      const GEMINI_MODEL = 'gemini-1.5-pro';
+      const GEMINI_MODEL = 'gemini-2.0-flash'; // Using faster model with higher rate limits
       
       // Create a prompt for Gemini to generate a curl command
       const prompt = `Generate a curl command for the following API request:
@@ -177,24 +177,21 @@ Please provide a complete, working curl command with proper formatting, headers,
         return generatedText.trim();
       } catch (error) {
         console.error('Failed to generate curl with Gemini:', error);
-        // Fall back to programmatic cURL generation
-        console.log('Falling back to programmatic cURL generation');
-        return await apiService.generateCurlCommand({
-          method: apiInfo?.method as Method || 'POST',
-          url: apiInfo?.endpoint || 'https://api.example.com/endpoint',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer YOUR_API_KEY'
-          },
-          body: { query: description },
-          description
-        });
+        
+        // Throw the error to enable proper fallback handling
+        throw error;
       }
+    } catch (error) {
+      console.error('Error in curl generation:', error);
+      
+      // Comprehensive fallback to programmatic generation
+      console.log('Falling back to programmatic cURL generation');
       
       const method = apiInfo?.method || 'POST';
       const endpoint = apiInfo?.endpoint || 'https://api.example.com/endpoint';
       const service = apiInfo?.service || '';
       
+      // Create service-specific curl commands
       let curlCommand = `curl -X ${method} "${endpoint}" \\\n  -H "Content-Type: application/json"`;
       
       if (service) {
@@ -213,6 +210,12 @@ Please provide a complete, working curl command with proper formatting, headers,
           case 'airtable':
             curlCommand = `curl -X GET "https://api.airtable.com/v0/YOUR_BASE_ID/YOUR_TABLE_NAME" \\\n  -H "Authorization: Bearer YOUR_AIRTABLE_API_KEY"`;
             break;
+          case 'database':
+            curlCommand = `curl -X POST "https://your-database-api.example.com/query" \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer YOUR_DB_API_KEY" \\\n  -d '{"query": "SELECT * FROM your_table WHERE condition = true"}'`;
+            break;
+          case 'api':
+            curlCommand = `curl -X GET "https://api.example.com/endpoint" \\\n  -H "Authorization: Bearer YOUR_API_KEY" \\\n  -H "Content-Type: application/json"`;
+            break;
           default:
             // If no recognized service, create a generic REST API call
             curlCommand = `curl -X ${method} "${endpoint}" \\\n  -H "Authorization: Bearer YOUR_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"query": "${description.replace(/"/g, '\\"')}"}'`;
@@ -223,9 +226,10 @@ Please provide a complete, working curl command with proper formatting, headers,
       }
       
       return curlCommand;
-    } catch (error: any) {
-      console.error('Failed to generate curl with Gemini:', error);
-      return `# Error generating curl command: ${error.message}`;
+    } catch (error) {
+      // Final fallback for any unexpected errors
+      console.error('All curl generation methods failed:', error);
+      return `# Error generating curl command\ncurl -X POST "https://api.example.com/endpoint" \\\n  -H "Content-Type: application/json" \\\n  -d '{"query": "${description.replace(/"/g, '\\"')}"}'`;
     }
   }
 };

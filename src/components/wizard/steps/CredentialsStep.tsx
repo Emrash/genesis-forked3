@@ -361,8 +361,10 @@ export const CredentialsStep: React.FC = () => {
     } finally {
       setGeneratingCurl(prev => ({
         ...prev,
-        [key]: false
-      }));
+    // Always regenerate curl when opening the generator
+    const credential = requiredCredentials.find(cred => cred.key === key);
+    if (credential) {
+      generateCurl(credential, key);
     }
   };
   
@@ -601,51 +603,72 @@ export const CredentialsStep: React.FC = () => {
                         }}
                         label="Select Voice"
                       />
-                    </div>
-                  )}
-
-                  <div className="space-y-4">
-                    <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-                      <h4 className="font-medium text-white mb-3 flex items-center">
-                        <ExternalLink className="w-4 h-4 mr-2 text-blue-400" />
-                        Setup Instructions
-                      </h4>
-                      <ol className="list-decimal list-inside space-y-2 text-sm text-gray-300">
-                        {Array.isArray(credential.instructions) ? 
-                          credential.instructions.map((instruction: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined, index: React.Key | null | undefined) => (
-                            <li key={index}>{instruction}</li>
-                          ))
-                        : 
-                          <li>Setup instructions unavailable</li>
+                {/* Manual curl input */}
+                <div>
+                  <label className="block text-sm text-gray-300 mb-2 flex items-center justify-between">
+                    <span>Custom cURL Command</span>
+                    <button
+                      onClick={() => {
+                        toggleCurlGenerator(key);
+                        if (!curlCommands[key]) {
+                          generateCurl(credential, key);
                         }
-                      </ol>
-                    </div>
+                      }}
+                      className="text-sm text-blue-400 hover:text-blue-300 flex items-center"
+                    >
+                      <Code className="w-4 h-4 mr-1" />
+                      {showCurlGenerator[key] ? "Hide cURL Generator" : "Show cURL Generator"}
+                    </button>
+                  </label>
+                  <div className="relative">
+                    <textarea
+                      placeholder={`# Enter your custom curl command here\ncurl -X GET "https://api.example.com" -H "Authorization: Bearer YOUR_TOKEN"`}
+                      className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-green-400 font-mono text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[100px]"
+                      value={curlCommands[key] || ''}
+                      onChange={(e) => setCurlCommands(prev => ({ ...prev, [key]: e.target.value }))}
+                    />
+                  </div>
+                </div>
 
-                    <div>
-                      <button
-                        onClick={() => {
-                          toggleCurlGenerator(key);
-                          if (!curlCommands[key]) {
-                            generateCurl(credential, key);
-                          }
-                        }}
-                        className="text-sm text-blue-400 hover:text-blue-300 flex items-center mb-2"
-                      >
-                        <Code className="w-4 h-4 mr-1" />
+                    </div>
+                  <div className="flex justify-between items-center">
+                    <button
+                      onClick={() => generateCurl(credential, key)}
+                      className="text-sm text-blue-400 hover:text-blue-300 flex items-center"
+                      disabled={generatingCurl[key]}
+                    >
+                      {generatingCurl[key] ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="w-4 h-4 mr-1" />
+                          Generate cURL
+                        </>
+                      )}
+                    </button>
+                    
+                    <button
+                      onClick={() => testCredential(credential, key)}
+                      className="text-sm text-green-400 hover:text-green-300 flex items-center"
+                      disabled={!localCredentials[key] || testingApi[key]}
+                    >
+                      {testingApi[key] ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                          Testing...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 mr-1" />
+                          {testResults[key] ? "Re-Test Credential" : "Test Credential"}
+                        </>
+                      )}
+                    </button>
+                  </div>
                         {showCurlGenerator[key] ? "Hide cURL Command" : "Show cURL Command"}
-                      </button>
-                      
-                      <button
-                        onClick={() => testCredential(credential, key)}
-                        className="text-sm text-green-400 hover:text-green-300 flex items-center"
-                        disabled={!localCredentials[key] || testingApi[key]}
-                      >
-                        {testingApi[key] ? (
-                          <>
-                            <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
-                            Testing...
-                          </>
-                        ) : (
                           <>
                             <CheckCircle2 className="w-4 h-4 mr-1" />
                             {testResults[key] ? "Re-Test Credential" : "Test Credential"}
@@ -708,17 +731,6 @@ export const CredentialsStep: React.FC = () => {
           {key && testResults[key] && (
             <div
               className={`mt-3 rounded-lg p-3 border ${
-                testResults[key].success
-                  ? 'bg-green-900/20 border-green-700/30'
-                  : 'bg-red-900/20 border-red-700/30'
-              }`}
-            >
-              <div className="text-xs mb-2 font-medium">
-                {testResults[key].success ? (
-                  <span className="text-green-400">✓ Credential Test Successful</span>
-                ) : (
-                  <span className="text-red-400">✗ Credential Test Failed</span>
-                )}
               </div>
               <div className="text-xs text-white/70">
                 {testResults[key]?.message || 'No details available'}
