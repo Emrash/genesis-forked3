@@ -9,6 +9,7 @@ import { AIModelSelector } from '../../ui/AIModelSelector';
 import { Card, CardContent } from '../../ui/Card';
 
 export const SimulationStep: React.FC = () => {
+  // Get state from wizard store
   const { 
     blueprint,
     credentials,
@@ -19,15 +20,42 @@ export const SimulationStep: React.FC = () => {
     errors 
   } = useWizardStore();
   
+  // Component state
   const [showDetails, setShowDetails] = useState(false);
   const [showLabView, setShowLabView] = useState(false);
   const [selectedModel, setSelectedModel] = useState('gemini-flash');
   const [simulationSettings, setSimulationSettings] = useState({
-    llmChoice: 'gemini_flash',
+    llmChoice: 'gemini_2_flash', // Updated to use Gemini 2.0 Flash
     simulationType: 'comprehensive',
-    simulationDuration: 120,
-    voiceEnabled: false
+    simulationDuration: 60, // Shorter duration for faster results
+    voiceEnabled: false,
+    slackEnabled: false,
+    slackWebhookUrl: credentials.slack_webhook_url || ''
   });
+
+  // When model selection changes, update the simulation settings
+  useEffect(() => {
+    if (selectedModel) {
+      setSimulationSettings(prev => ({
+        ...prev,
+        llmChoice: selectedModel === 'gemini-flash' ? 'gemini_2_flash' 
+                 : selectedModel === 'gemini-pro' ? 'gemini_2_pro'
+                 : selectedModel === 'claude-3-sonnet' ? 'claude_3_sonnet'
+                 : 'gpt_4'
+      }));
+    }
+  }, [selectedModel]);
+
+  // When credentials change, update Slack settings
+  useEffect(() => {
+    if (credentials.slack_webhook_url) {
+      setSimulationSettings(prev => ({
+        ...prev,
+        slackEnabled: true,
+        slackWebhookUrl: credentials.slack_webhook_url
+      }));
+    }
+  }, [credentials]);
 
   const handleSettingChange = (setting: string, value: any) => {
     setSimulationSettings(prev => ({
@@ -37,10 +65,29 @@ export const SimulationStep: React.FC = () => {
   };
 
   const handleRunSimulation = async () => {
-    // We'll pass the simulation settings to the runSimulation function
-    // to be used in the actual simulation
+    // Pass the simulation settings to the runSimulation function
     try {
       console.log('🧪 Running simulation with settings:', simulationSettings);
+      
+      // Create enhanced simulation config
+      const simulationConfig = {
+        blueprint_id: blueprint?.id,
+        agents: blueprint?.suggested_structure.agents || [],
+        workflows: blueprint?.suggested_structure.workflows || [],
+        test_credentials: credentials,
+        simulation_type: simulationSettings.simulationType,
+        parameters: {
+          duration_minutes: simulationSettings.simulationDuration / 60, // Convert seconds to minutes
+          load_factor: 1.0,
+          error_injection: true,
+          performance_profiling: true,
+          ai_model: simulationSettings.llmChoice,
+          slackEnabled: simulationSettings.slackEnabled,
+          slackWebhookUrl: simulationSettings.slackWebhookUrl
+        }
+      };
+      
+      // Run the simulation with enhanced config
       await runSimulation();
     } catch (error) {
       console.error('Simulation failed:', error);
@@ -147,19 +194,46 @@ export const SimulationStep: React.FC = () => {
                             value={simulationSettings.llmChoice}
                             onChange={(e) => handleSettingChange('llmChoice', e.target.value)}
                             className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            disabled={isLoading}
                           >
-                            <option value="gemini_flash">Gemini Flash (Default)</option>
-                            <option value="gemini_pro">Gemini Pro (Advanced)</option>
+                            <option value="gemini_2_flash">Gemini 2.0 Flash (Default)</option>
+                            <option value="gemini_2_pro">Gemini 2.0 Pro (Advanced)</option>
                             <option value="claude">Claude (Experimental)</option>
                             <option value="gpt4">GPT-4 (Premium)</option>
                           </select>
                           <p className="text-xs text-gray-400">
-                            {simulationSettings.llmChoice === 'gemini_flash' && "Fast, efficient responses. Good for most tasks."}
-                            {simulationSettings.llmChoice === 'gemini_pro' && "Enhanced reasoning capabilities. Better for complex tasks."}
+                            {simulationSettings.llmChoice === 'gemini_2_flash' && "Fast, efficient responses with Gemini 2.0. Good for most tasks."}
+                            {simulationSettings.llmChoice === 'gemini_2_pro' && "Enhanced reasoning capabilities with Gemini 2.0. Better for complex tasks."}
                             {simulationSettings.llmChoice === 'claude' && "Experimental integration with Claude's capabilities."}
                             {simulationSettings.llmChoice === 'gpt4' && "Premium tier with GPT-4's advanced intelligence."}
                           </p>
                         </div>
+
+                        {/* Slack Integration */}
+                        {credentials.slack_webhook_url && (
+                          <div className="space-y-2 border border-blue-500/30 rounded-lg p-4 bg-blue-500/10">
+                            <label className="flex items-center justify-between text-sm text-blue-300 mb-1">
+                              <span>Slack Integration</span>
+                              <span className="text-green-400">Available</span>
+                            </label>
+                            <div className="flex items-center">
+                              <input
+                                type="checkbox"
+                                id="slackEnabled"
+                                checked={simulationSettings.slackEnabled}
+                                onChange={(e) => handleSettingChange('slackEnabled', e.target.checked)}
+                                className="mr-2"
+                                disabled={isLoading}
+                              />
+                              <label htmlFor="slackEnabled" className="text-sm text-gray-300">Send simulation results to Slack</label>
+                            </div>
+                            {simulationSettings.slackEnabled && (
+                              <div className="text-xs text-gray-400 mt-1">
+                                Simulation results will be sent to your connected Slack channel
+                              </div>
+                            )}
+                          </div>
+                        )}
                         
                         <div className="space-y-2">
                           <label className="block text-sm text-gray-300 mb-1">Simulation Type</label>
@@ -186,13 +260,14 @@ export const SimulationStep: React.FC = () => {
                             <span className="text-purple-400">{simulationSettings.simulationDuration}s</span>
                           </label>
                           <input
-                            type="range"
-                            min="30"
-                            max="300"
-                            step="30"
+                            type="range" 
+                            min="10"
+                            max="120"
+                            step="10"
                             value={simulationSettings.simulationDuration}
                             onChange={(e) => handleSettingChange('simulationDuration', parseInt(e.target.value))}
                             className="w-full"
+                            disabled={isLoading}
                           />
                         </div>
                         
@@ -203,6 +278,7 @@ export const SimulationStep: React.FC = () => {
                             checked={simulationSettings.voiceEnabled}
                             onChange={(e) => handleSettingChange('voiceEnabled', e.target.checked)}
                             className="mr-2"
+                            disabled={isLoading}
                           />
                           <label htmlFor="voiceEnabled" className="text-sm text-gray-300">Enable Voice Simulation</label>
                         </div>
