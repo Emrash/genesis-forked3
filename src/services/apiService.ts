@@ -177,7 +177,18 @@ Please provide a complete, working curl command with proper formatting, headers,
         return generatedText.trim();
       } catch (error) {
         console.error('Failed to generate curl with Gemini:', error);
-        // Fall back to template-based generation
+        // Fall back to programmatic cURL generation
+        console.log('Falling back to programmatic cURL generation');
+        return await apiService.generateCurlCommand({
+          method: apiInfo?.method as Method || 'POST',
+          url: apiInfo?.endpoint || 'https://api.example.com/endpoint',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer YOUR_API_KEY'
+          },
+          body: { query: description },
+          description
+        });
       }
       
       const method = apiInfo?.method || 'POST';
