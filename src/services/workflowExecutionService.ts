@@ -105,7 +105,7 @@ export const workflowExecutionService = {
   /**
    * Get execution history for a workflow
    */
-  getExecutionHistory: async (flowId: string): Promise<ExecutionHistoryEntry[]> => {
+  getExecutionHistory: async (flowId: string, options: { limit?: number; offset?: number; filter?: string } = {}): Promise<ExecutionHistoryEntry[]> => {
     try {
       // Try to use the real API endpoint
       const response = await api.get(`/workflow/${flowId}/history`);

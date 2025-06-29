@@ -40,7 +40,8 @@ export const aiService = {
     try {
       // Determine which model to use
       const modelId = options?.modelId || 'gemini-pro';
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+      // Use Gemini 1.5 API for Sprint 3 enhanced intelligence
+      const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${modelId}:generateContent?key=${apiKey}`;
       
       // Prepare the request body
       const requestBody: any = {

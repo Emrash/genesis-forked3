@@ -115,6 +115,14 @@ export function useVoice() {
     setIsPlaying(false);
   }, []);
   
+  // Check if browser supports speech recognition
+  const isSpeechRecognitionSupported = (): boolean => {
+    return !!(
+      (window as any).SpeechRecognition || 
+      (window as any).webkitSpeechRecognition
+    );
+  };
+  
   return {
     voices,
     selectedVoice,
@@ -124,6 +132,7 @@ export function useVoice() {
     loadVoices,
     selectVoice,
     speak,
-    stop
+    stop,
+    isSpeechRecognitionSupported
   };
 }

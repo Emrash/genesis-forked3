@@ -334,6 +334,8 @@ Always think strategically, act efficiently, and communicate clearly.`,
         return `https://genesisOS.ai/guild/${guildId}/web`;
       case 'api':
         return `https://api.genesisOS.ai/guild/${guildId}`;
+      default:
+        return `https://genesisOS.ai/guild/${guildId}/channel/${channelType}`;
     }
   }
 };
