@@ -21,141 +21,124 @@ import {
   Mic,
   Volume2,
   MessageSquare,
-  ChevronDown,
-  ChevronRight,
-  CalendarDays,
-  Users,
-  FileType,
-  LayoutGrid,
-  Maximize,
-  Minimize,
-  XCircle,
-  Search,
-  Filter,
-  FileText,
-  Rocket,
-  Brain
+  Sliders,
+  HelpCircle,
+  Shield,
+  Workflow,
+  Sparkles
 } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 import { HolographicButton } from '../ui/HolographicButton';
-import { apiMethods } from '../../lib/api';
-import { AIModelSelector } from '../ui/AIModelSelector';
-import { useWizardStore } from '../../stores/wizardStore';
 import { simulationService } from '../../services/simulationService';
-import { VoiceInterface } from '../voice/VoiceInterface';
-import { VideoInterface } from '../video/VideoInterface';
-
-interface SimulationConfig {
-  type: 'comprehensive' | 'quick' | 'stress' | 'custom';
-  duration_minutes: number;
-  load_factor: number;
-  scenarios: string[];
-  guild_id: string;
-  voice_enabled: boolean;
-  model_id: string;
-  error_injection: boolean;
-  performance_monitoring: boolean;
-}
+import { AIModelSelector } from '../ui/AIModelSelector';
 
 interface EnhancedSimulationLabProps {
   guildId: string;
   agents: any[];
-  onResults?: (results: any) => void;
-  className?: string;
   advanced?: boolean;
+  onResults?: (results: any) => void;
 }
 
 export const EnhancedSimulationLab: React.FC<EnhancedSimulationLabProps> = ({
   guildId,
   agents,
-  onResults,
-  className = '',
-  advanced = false
+  advanced = true,
+  onResults
 }) => {
-  // Get wizard store
-  const { blueprint, setSimulationResults } = useWizardStore();
-  
-  // Simulation state
+  // Simulation configuration state
   const [isRunning, setIsRunning] = useState(false);
   const [currentSimulation, setCurrentSimulation] = useState<any | null>(null);
   const [simulationHistory, setSimulationHistory] = useState<any[]>([]);
-  const [selectedHistory, setSelectedHistory] = useState<any | null>(null);
-  const [realTimeMetrics, setRealTimeMetrics] = useState<any>({});
+  const [selectedModel, setSelectedModel] = useState('gemini-flash');
+  const [showAgentMetrics, setShowAgentMetrics] = useState<Record<string, boolean>>({});
   
-  // UI state
-  const [selectedTab, setSelectedTab] = useState<'setup' | 'execution' | 'results' | 'history'>('setup');
-  const [showVoiceInterface, setShowVoiceInterface] = useState(false);
-  const [showVideoInterface, setShowVideoInterface] = useState(false);
-  const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
-  const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({});
-  
-  // Charts and visualization
-  const [chartTimeframe, setChartTimeframe] = useState<'realtime' | '1h' | '24h' | '7d'>('realtime');
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  
-  // Form state
-  const [config, setConfig] = useState<SimulationConfig>({
-    type: 'comprehensive',
-    duration_minutes: 5,
-    load_factor: 1.0,
-    scenarios: ['normal_operation', 'high_load', 'error_injection'],
-    guild_id: guildId,
-    voice_enabled: false,
-    model_id: 'gemini-flash',
-    error_injection: false,
-    performance_monitoring: true
+  // Simulation settings
+  const [settings, setSettings] = useState({
+    testType: 'comprehensive', // 'comprehensive', 'quick', 'stress', 'custom'
+    duration: 60, // seconds
+    loadFactor: 1.0, // 0.5-3.0
+    scenarioCount: 3, // 1-10
+    errorInjection: true,
+    networkLatency: false,
+    apiTimeouts: false,
+    realTimeMonitoring: true,
+    includeVisualAnalytics: true,
+    slackNotifications: false,
+    slackWebhookUrl: '',
+    testScenarios: [
+      'normal_operation',
+      'high_load',
+      'error_recovery'
+    ]
   });
+
+  // UI state
+  const [activeTab, setActiveTab] = useState<'configuration' | 'realtime' | 'results' | 'history'>('configuration');
+  const [viewMode, setViewMode] = useState<'basic' | 'advanced'>(advanced ? 'advanced' : 'basic');
+  const [chartData, setChartData] = useState<any>(null);
+  const [showSettings, setShowSettings] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Animation refs
+  const simulationTimerRef = useRef<any>(null);
+  const progressIntervalRef = useRef<any>(null);
   
-  // WebSocket for real-time updates
-  const wsRef = useRef<WebSocket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+  // Agent communication visualization
+  const [agentMessages, setAgentMessages] = useState<any[]>([]);
   
-  // Real-time metrics
-  const [agentMetrics, setAgentMetrics] = useState<any[]>([]);
-  const [executionLogs, setExecutionLogs] = useState<any[]>([]);
-  const metricsRef = useRef<HTMLDivElement>(null);
-  
-  // Connect to simulation service
+  // Generate random agent messages for visualization
   useEffect(() => {
-    if (guildId) {
-      connectToSimulationService();
+    if (isRunning && settings.realTimeMonitoring) {
+      const interval = setInterval(() => {
+        if (agents.length >= 2) {
+          const fromIndex = Math.floor(Math.random() * agents.length);
+          let toIndex = Math.floor(Math.random() * agents.length);
+          
+          // Make sure sender and receiver are different
+          while (toIndex === fromIndex) {
+            toIndex = Math.floor(Math.random() * agents.length);
+          }
+          
+          const message = {
+            id: `msg-${Date.now()}`,
+            from: agents[fromIndex].name,
+            to: agents[toIndex].name,
+            content: generateRandomMessage(agents[fromIndex], agents[toIndex]),
+            timestamp: new Date()
+          };
+          
+          setAgentMessages(prev => [...prev.slice(-9), message]);
+        }
+      }, 2000);
+      
+      return () => clearInterval(interval);
     }
-    
-    return () => {
-      disconnectFromSimulationService();
-    };
-  }, [guildId]);
-  
-  // Load previous simulations from history
-  useEffect(() => {
-    loadSimulationHistory();
-  }, []);
-  
-  // Connect to simulation service
-  const connectToSimulationService = async () => {
-    try {
-      // Simulate WebSocket connection for development
-      console.log("🧪 Connecting to simulation service...");
-      setTimeout(() => {
-        setIsConnected(true);
-        console.log('🧪 Connected to simulation service');
-      }, 1000);
-    } catch (error) {
-      console.error('Failed to connect to simulation service:', error);
-      setIsConnected(false);
-    }
-  };
-  
-  // Disconnect from simulation service
-  const disconnectFromSimulationService = () => {
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-    setIsConnected(false);
-  };
+  }, [isRunning, agents, settings.realTimeMonitoring]);
   
   // Load simulation history
+  useEffect(() => {
+    loadSimulationHistory();
+  }, [guildId]);
+
+  // Initialize chart data
+  useEffect(() => {
+    setChartData({
+      success: {
+        labels: [],
+        datasets: [{ data: [], backgroundColor: '#10b981' }]
+      },
+      errors: {
+        labels: [],
+        datasets: [{ data: [], backgroundColor: '#ef4444' }]
+      },
+      responseTime: {
+        labels: [],
+        datasets: [{ data: [], backgroundColor: '#8b5cf6' }]
+      }
+    });
+  }, []);
+
+  // Load simulation history from the service
   const loadSimulationHistory = async () => {
     try {
       const history = await simulationService.getSimulationHistory(guildId);
@@ -164,1281 +147,1190 @@ export const EnhancedSimulationLab: React.FC<EnhancedSimulationLabProps> = ({
       console.error('Failed to load simulation history:', error);
     }
   };
-  
-  // Handle form changes
-  const handleConfigChange = (key: keyof SimulationConfig, value: any) => {
-    setConfig(prev => ({
+
+  // Generate random agent messages for visualization
+  const generateRandomMessage = (fromAgent: any, toAgent: any) => {
+    const messageTemplates = [
+      `Requesting data analysis on recent ${Math.random() > 0.5 ? 'customer engagement' : 'market trends'}`,
+      `Sharing insights about ${Math.random() > 0.5 ? 'user behavior patterns' : 'performance metrics'}`,
+      `Need assistance with ${Math.random() > 0.5 ? 'content optimization' : 'data validation'}`,
+      `Updating workflow status: ${Math.random() > 0.7 ? 'completed successfully' : 'in progress'}`,
+      `Processing request for ${Math.random() > 0.5 ? 'report generation' : 'data retrieval'}`
+    ];
+    
+    return messageTemplates[Math.floor(Math.random() * messageTemplates.length)];
+  };
+
+  // Handle changing simulation settings
+  const handleSettingChange = (setting: string, value: any) => {
+    setSettings(prev => ({
       ...prev,
-      [key]: value
+      [setting]: value
     }));
   };
-  
-  // Add or remove scenario
-  const handleScenarioToggle = (scenario: string) => {
-    setConfig(prev => {
-      if (prev.scenarios.includes(scenario)) {
+
+  // Handle toggling test scenarios
+  const handleToggleScenario = (scenario: string) => {
+    setSettings(prev => {
+      if (prev.testScenarios.includes(scenario)) {
         return {
           ...prev,
-          scenarios: prev.scenarios.filter(s => s !== scenario)
+          testScenarios: prev.testScenarios.filter(s => s !== scenario),
+          scenarioCount: prev.testScenarios.filter(s => s !== scenario).length
         };
       } else {
         return {
           ...prev,
-          scenarios: [...prev.scenarios, scenario]
+          testScenarios: [...prev.testScenarios, scenario],
+          scenarioCount: prev.testScenarios.length + 1
         };
       }
     });
   };
-  
+
   // Start simulation
-  const startSimulation = async () => {
-    setIsRunning(true);
-    setCurrentSimulation(null);
-    setSelectedTab('execution');
-    setActiveNodeId(null);
-    setExecutionLogs([]);
-    
+  const handleStartSimulation = async () => {
     try {
-      // Clear any previous metrics
-      setAgentMetrics(agents.map(agent => ({
-        id: agent.id || `agent-${Math.random().toString(36).substr(2, 9)}`,
-        name: agent.name,
-        role: agent.role,
-        metrics: {
-          requests: 0,
-          responses: 0,
-          errors: 0,
-          avgResponseTime: 0,
-          lastResponseTime: 0
+      setError(null);
+      setIsRunning(true);
+      setActiveTab('realtime');
+      setAgentMessages([]);
+      
+      // Create simulation configuration
+      const config = {
+        guild_id: guildId,
+        agents,
+        simulation_type: settings.testType,
+        parameters: {
+          duration_minutes: settings.duration / 60, // Convert seconds to minutes
+          load_factor: settings.loadFactor,
+          error_injection: settings.errorInjection,
+          network_latency: settings.networkLatency,
+          api_timeouts: settings.apiTimeouts,
+          ai_model: mapModelToAIEngine(selectedModel),
+          slackEnabled: settings.slackNotifications,
+          slackWebhookUrl: settings.slackWebhookUrl
         },
-        status: 'initializing'
-      })));
+        test_scenarios: settings.testScenarios
+      };
       
-      // Start real-time metrics updates
-      startMetricsSimulation();
+      // Simulate progress updates
+      let progress = 0;
+      progressIntervalRef.current = setInterval(() => {
+        progress += Math.random() * 2;
+        if (progress >= 100) {
+          progress = 100;
+          clearInterval(progressIntervalRef.current);
+        }
+        
+        // Update chart data
+        setChartData(prev => {
+          const timestamp = new Date().toLocaleTimeString();
+          
+          // Only update sometimes for a more realistic look
+          if (Math.random() > 0.3) {
+            return {
+              success: {
+                labels: [...prev.success.labels, timestamp],
+                datasets: [{
+                  ...prev.success.datasets[0],
+                  data: [...prev.success.datasets[0].data, Math.floor(Math.random() * 30) + 70]
+                }]
+              },
+              errors: {
+                labels: [...prev.errors.labels, timestamp],
+                datasets: [{
+                  ...prev.errors.datasets[0],
+                  data: [...prev.errors.datasets[0].data, Math.floor(Math.random() * 10)]
+                }]
+              },
+              responseTime: {
+                labels: [...prev.responseTime.labels, timestamp],
+                datasets: [{
+                  ...prev.responseTime.datasets[0],
+                  data: [...prev.responseTime.datasets[0].data, Math.floor(Math.random() * 500) + 200]
+                }]
+              }
+            };
+          }
+          return prev;
+        });
+        
+        // Update simulation with progress
+        setCurrentSimulation(prev => prev ? {
+          ...prev,
+          progress
+        } : null);
+      }, 1000);
       
-      // Run the simulation
-      const results = await simulationService.runSimulation(guildId, {
-        ...config,
-        agents
-      });
+      // Run the actual simulation
+      const results = await simulationService.runSimulation(guildId, config);
       
-      // Update state
+      // Clear progress interval
+      clearInterval(progressIntervalRef.current);
+      
+      // Set results
       setCurrentSimulation(results);
-      setSimulationHistory(prev => [results, ...prev]);
+      setIsRunning(false);
       
-      // Notify parent component
+      // Add to history
+      setSimulationHistory(prev => [results, ...prev.slice(0, 4)]);
+      
+      // Set active tab to results
+      setActiveTab('results');
+      
+      // Callback with results if provided
       if (onResults) {
         onResults(results);
       }
       
-      // Update wizard store
-      setSimulationResults(results);
-      
-      // Switch to results tab
-      setSelectedTab('results');
-    } catch (error) {
-      console.error('Simulation failed:', error);
-      setExecutionLogs(prev => [...prev, {
-        timestamp: new Date().toISOString(),
-        level: 'error',
-        message: `Simulation failed: ${
-          typeof error === 'object' && error !== null && 'message' in error
-            ? (error as { message?: string }).message
-            : 'Unknown error'
-        }`,
-        details: error
-      }]);
-    } finally {
+    } catch (error: any) {
+      clearInterval(progressIntervalRef.current);
       setIsRunning(false);
+      setError(error.message || 'Failed to run simulation');
+      console.error('Simulation failed:', error);
     }
   };
-  
+
   // Stop simulation
-  const stopSimulation = () => {
+  const handleStopSimulation = () => {
+    clearInterval(progressIntervalRef.current);
+    clearTimeout(simulationTimerRef.current);
     setIsRunning(false);
-    stopMetricsSimulation();
+    setCurrentSimulation(null);
+    setActiveTab('configuration');
   };
-  
-  // Start metrics simulation
-  const startMetricsSimulation = () => {
-    // Simulate real-time metrics updates
-    const interval = setInterval(() => {
-      // Update agent metrics
-      setAgentMetrics(prev => prev.map(agent => {
-        // Simulate realistic metrics changes
-        const newRequests = Math.floor(Math.random() * 3);
-        const newResponses = Math.floor(Math.random() * newRequests);
-        const newErrors = Math.max(0, newRequests - newResponses);
-        const responseTime = 200 + Math.random() * 300;
-        
-        const metrics = {
-          requests: agent.metrics.requests + newRequests,
-          responses: agent.metrics.responses + newResponses,
-          errors: agent.metrics.errors + newErrors,
-          avgResponseTime: agent.metrics.avgResponseTime === 0 
-            ? responseTime 
-            : (agent.metrics.avgResponseTime * 0.8) + (responseTime * 0.2),
-          lastResponseTime: newResponses > 0 ? responseTime : agent.metrics.lastResponseTime
-        };
-        
-        // Determine agent status
-        let status = 'active';
-        if (metrics.errors > metrics.responses * 0.5) {
-          status = 'error';
-        } else if (Math.random() > 0.95) {
-          status = 'paused';
-        }
-        
-        return {
-          ...agent,
-          metrics,
-          status
-        };
-      }));
-      
-      // Add execution logs
-      if (Math.random() > 0.7) {
-        const logTypes = ['info', 'warning', 'error', 'debug'];
-        const logLevel = logTypes[Math.floor(Math.random() * logTypes.length)];
-        const agent = agents[Math.floor(Math.random() * agents.length)];
-        
-        setExecutionLogs(prev => [...prev, {
-          timestamp: new Date().toISOString(),
-          level: logLevel,
-          agent: agent.name,
-          message: generateLogMessage(logLevel, agent),
-          details: { agentId: agent.id || `agent-${Math.random().toString(36).substr(2, 9)}` }
-        }]);
-      }
-      
-      // Scroll logs to bottom
-      if (metricsRef.current) {
-        metricsRef.current.scrollTop = metricsRef.current.scrollHeight;
-      }
-    }, 1000);
-    
-    return interval;
-  };
-  
-  // Stop metrics simulation
-  const stopMetricsSimulation = () => {
-    // Stop metrics simulation interval
-  };
-  
-  // Generate log message
-  const generateLogMessage = (level: string, agent: any): string => {
-    const infoMessages = [
-      `Processing user request`,
-      `Analyzing data`,
-      `Accessing knowledge base`,
-      `Generating response`,
-      `Coordinating with other agents`,
-      `Retrieving context from memory`,
-      `Fetching external data`
-    ];
-    
-    const warningMessages = [
-      `Slow response time detected`,
-      `Missing context in request`,
-      `API rate limit approaching`,
-      `Memory usage high`,
-      `Incomplete data received`
-    ];
-    
-    const errorMessages = [
-      `API connection failed`,
-      `Tool execution error`,
-      `Memory retrieval failed`,
-      `Response generation timeout`,
-      `Authentication failed`
-    ];
-    
-    const debugMessages = [
-      `Request parameters: {"type": "query", "format": "json"}`,
-      `Response size: 2.3KB`,
-      `Processing time: 450ms`,
-      `Memory usage: 85MB`,
-      `Context window: 72% used`
-    ];
-    
-    switch (level) {
-      case 'info':
-        return `${agent.name}: ${infoMessages[Math.floor(Math.random() * infoMessages.length)]}`;
-      case 'warning':
-        return `${agent.name}: ${warningMessages[Math.floor(Math.random() * warningMessages.length)]}`;
-      case 'error':
-        return `${agent.name}: ${errorMessages[Math.floor(Math.random() * errorMessages.length)]}`;
-      case 'debug':
-        return `${agent.name}: ${debugMessages[Math.floor(Math.random() * debugMessages.length)]}`;
-      default:
-        return `${agent.name}: Log message`;
+
+  // Map model ID to AI engine name
+  const mapModelToAIEngine = (modelId: string): string => {
+    switch (modelId) {
+      case 'gemini-flash': return 'gemini_2_flash';
+      case 'gemini-pro': return 'gemini_2_pro';
+      case 'claude-3-sonnet': return 'claude_3_sonnet';
+      case 'gpt-4': return 'gpt_4';
+      default: return 'gemini_2_flash';
     }
   };
-  
-  // Toggle log expansion
-  const toggleLogExpand = (index: number) => {
-    setExpandedLogs(prev => ({
-      ...prev,
-      [index]: !prev[index]
-    }));
-  };
-  
-  // Render setup tab
-  const renderSetupTab = () => (
-    <div className="space-y-6">
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <h4 className="text-lg font-semibold text-white">Simulation Configuration</h4>
-          
-          {/* Simulation Type */}
-          <div>
-            <label className="block text-sm text-gray-300 mb-2">Simulation Type</label>
-            <select
-              value={config.type}
-              onChange={(e) => handleConfigChange('type', e.target.value)}
-              className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
-              disabled={isRunning}
-            >
-              <option value="comprehensive">Comprehensive Test</option>
-              <option value="quick">Quick Validation</option>
-              <option value="stress">Stress Test</option>
-              <option value="custom">Custom Scenarios</option>
-            </select>
-          </div>
 
-          {/* AI Model */}
-          <AIModelSelector
-            selectedModelId={config.model_id}
-            onSelect={(modelId) => handleConfigChange('model_id', modelId)}
-            label="AI Model"
-          />
-          
-          {/* Duration and Load */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-gray-300 mb-2">Duration (minutes)</label>
-              <input
-                type="number"
-                min="1"
-                max="30"
-                value={config.duration_minutes}
-                onChange={(e) => handleConfigChange('duration_minutes', parseInt(e.target.value))}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
-                disabled={isRunning}
-              />
+  // Render real-time monitoring view
+  const renderRealtimeView = () => {
+    if (!isRunning && !currentSimulation) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <HelpCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-400">
+              Start a simulation to see real-time monitoring data
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Progress Bar */}
+        <div className="bg-white/5 p-4 border border-white/10 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-2">
+              <Cpu className="w-5 h-5 text-blue-400" />
+              <span className="text-white font-medium">Simulation Progress</span>
             </div>
-            
-            <div>
-              <label className="block text-sm text-gray-300 mb-2">Load Factor</label>
-              <input
-                type="range"
-                min="0.5"
-                max="3.0"
-                step="0.1"
-                value={config.load_factor}
-                onChange={(e) => handleConfigChange('load_factor', parseFloat(e.target.value))}
-                className="w-full"
-                disabled={isRunning}
-              />
-              <div className="text-xs text-gray-400 mt-1">{config.load_factor}x</div>
-            </div>
+            <span className="text-white">
+              {Math.round(currentSimulation?.progress || 0)}%
+            </span>
           </div>
           
-          {/* Advanced Options */}
-          <div className="space-y-2 mt-4 pt-4 border-t border-white/10">
-            <h5 className="text-sm font-semibold text-white">Advanced Options</h5>
-            
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="error_injection"
-                checked={config.error_injection}
-                onChange={(e) => handleConfigChange('error_injection', e.target.checked)}
-                className="mr-2"
-                disabled={isRunning}
-              />
-              <label htmlFor="error_injection" className="text-sm text-gray-300">
-                Error Injection (test failure handling)
-              </label>
-            </div>
-            
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="performance_monitoring"
-                checked={config.performance_monitoring}
-                onChange={(e) => handleConfigChange('performance_monitoring', e.target.checked)}
-                className="mr-2"
-                disabled={isRunning}
-              />
-              <label htmlFor="performance_monitoring" className="text-sm text-gray-300">
-                Performance Monitoring
-              </label>
-            </div>
-            
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="voice_enabled"
-                checked={config.voice_enabled}
-                onChange={(e) => handleConfigChange('voice_enabled', e.target.checked)}
-                className="mr-2"
-                disabled={isRunning}
-              />
-              <label htmlFor="voice_enabled" className="text-sm text-gray-300">
-                Enable Voice Interactions
-              </label>
-            </div>
+          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+            <motion.div
+              className="h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+              initial={{ width: '0%' }}
+              animate={{ width: `${currentSimulation?.progress || 0}%` }}
+              transition={{ duration: 0.5 }}
+            />
+          </div>
+          
+          <div className="flex justify-between text-xs text-gray-400 mt-1">
+            <span>Started: {new Date().toLocaleTimeString()}</span>
+            <span>
+              {isRunning ? 'Running...' : currentSimulation?.status}
+            </span>
           </div>
         </div>
 
-        {/* Test Scenarios */}
-        <div className="space-y-4">
-          <h4 className="text-lg font-semibold text-white">Test Scenarios</h4>
-          <div className="space-y-3 bg-white/5 p-4 rounded-lg border border-white/10">
-            {[
-              {
-                id: 'normal_operation',
-                label: 'Normal Operation',
-                description: 'Tests standard usage patterns',
-                icon: Activity,
-                color: 'text-green-400',
-                bgColor: 'bg-green-400/20'
-              },
-              {
-                id: 'high_load',
-                label: 'High Load',
-                description: 'Tests performance under stress',
-                icon: TrendingUp,
-                color: 'text-yellow-400',
-                bgColor: 'bg-yellow-400/20'
-              },
-              {
-                id: 'error_injection',
-                label: 'Error Injection',
-                description: 'Tests resilience and recovery',
-                icon: AlertTriangle,
-                color: 'text-orange-400',
-                bgColor: 'bg-orange-400/20'
-              },
-              {
-                id: 'complex_queries',
-                label: 'Complex Queries',
-                description: 'Tests handling of complex requests',
-                icon: Search,
-                color: 'text-blue-400',
-                bgColor: 'bg-blue-400/20'
-              },
-              {
-                id: 'concurrent_users',
-                label: 'Concurrent Users',
-                description: 'Tests multi-user scenarios',
-                icon: Users,
-                color: 'text-purple-400',
-                bgColor: 'bg-purple-400/20'
-              },
-              {
-                id: 'long_conversations',
-                label: 'Long Conversations',
-                description: 'Tests long-term memory retention',
-                icon: MessageSquare,
-                color: 'text-pink-400',
-                bgColor: 'bg-pink-400/20'
-              }
-            ].map((scenario) => (
-              <label 
-                key={scenario.id}
-                className="flex items-center space-x-3 p-3 bg-white/5 border border-white/10 rounded-lg cursor-pointer hover:bg-white/10 transition-colors"
-              >
-                <input
-                  type="checkbox"
-                  checked={config.scenarios.includes(scenario.id)}
-                  onChange={() => handleScenarioToggle(scenario.id)}
-                  className="sr-only"
-                  disabled={isRunning}
-                />
-                
-                <div className={`w-5 h-5 flex items-center justify-center rounded-md ${
-                  config.scenarios.includes(scenario.id)
-                    ? scenario.bgColor
-                    : 'bg-white/10'
-                }`}>
-                  {config.scenarios.includes(scenario.id) && (
-                    <Check className={`w-3 h-3 ${scenario.color}`} />
-                  )}
-                </div>
-                
-                <div className="flex-1">
-                  <div className="flex items-center">
-                    <scenario.icon className={`w-4 h-4 mr-2 ${scenario.color}`} />
-                    <span className="text-white font-medium">{scenario.label}</span>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-0.5">{scenario.description}</p>
-                </div>
-              </label>
-            ))}
-          </div>
-          
-          {/* Guild Stats */}
-          <div className="mt-6">
-            <h4 className="text-lg font-semibold text-white mb-3">Guild Overview</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white/5 p-3 rounded-lg border border-white/10">
-                <div className="flex items-center space-x-2">
-                  <Users className="w-4 h-4 text-purple-400" />
-                  <span className="text-sm text-gray-300">Agents</span>
-                </div>
-                <div className="text-xl font-semibold text-white mt-1">{agents.length}</div>
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Success Rate */}
+          <GlassCard variant="subtle" className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                <span className="text-white text-sm">Success Rate</span>
               </div>
-              
-              <div className="bg-white/5 p-3 rounded-lg border border-white/10">
-                <div className="flex items-center space-x-2">
-                  <FileType className="w-4 h-4 text-blue-400" />
-                  <span className="text-sm text-gray-300">Workflows</span>
-                </div>
-                <div className="text-xl font-semibold text-white mt-1">
-                  {blueprint?.suggested_structure?.workflows?.length || 0}
-                </div>
-              </div>
-              
-              <div className="bg-white/5 p-3 rounded-lg border border-white/10">
-                <div className="flex items-center space-x-2">
-                  <Clock className="w-4 h-4 text-emerald-400" />
-                  <span className="text-sm text-gray-300">Est. Duration</span>
-                </div>
-                <div className="text-xl font-semibold text-white mt-1">
-                  {config.duration_minutes}m
-                </div>
-              </div>
-              
-              <div className="bg-white/5 p-3 rounded-lg border border-white/10">
-                <div className="flex items-center space-x-2">
-                  <Activity className="w-4 h-4 text-yellow-400" />
-                  <span className="text-sm text-gray-300">Test Scenarios</span>
-                </div>
-                <div className="text-xl font-semibold text-white mt-1">
-                  {config.scenarios.length}
-                </div>
-              </div>
+              <span className="text-green-400 font-medium">
+                {chartData?.success?.datasets[0]?.data?.length > 0 
+                  ? Math.round(
+                      chartData.success.datasets[0].data.reduce((a: number, b: number) => a + b, 0) / 
+                      chartData.success.datasets[0].data.length
+                    )
+                  : 95}%
+              </span>
             </div>
-          </div>
+            <div className="h-20 relative">
+              {chartData?.success?.datasets[0]?.data?.length > 0 && (
+                <div className="flex items-end h-full space-x-1">
+                  {chartData.success.datasets[0].data.map((value: number, index: number) => (
+                    <div 
+                      key={index}
+                      className="bg-green-500/50 rounded-t w-full"
+                      style={{ height: `${value}%` }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </GlassCard>
+          
+          {/* Error Rate */}
+          <GlassCard variant="subtle" className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+                <span className="text-white text-sm">Error Rate</span>
+              </div>
+              <span className="text-red-400 font-medium">
+                {chartData?.errors?.datasets[0]?.data?.length > 0 
+                  ? Math.round(
+                      chartData.errors.datasets[0].data.reduce((a: number, b: number) => a + b, 0) / 
+                      chartData.errors.datasets[0].data.length
+                    )
+                  : 5}%
+              </span>
+            </div>
+            <div className="h-20 relative">
+              {chartData?.errors?.datasets[0]?.data?.length > 0 && (
+                <div className="flex items-end h-full space-x-1">
+                  {chartData.errors.datasets[0].data.map((value: number, index: number) => (
+                    <div 
+                      key={index}
+                      className="bg-red-500/50 rounded-t w-full"
+                      style={{ height: `${value * 5}%` }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </GlassCard>
+          
+          {/* Response Time */}
+          <GlassCard variant="subtle" className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <Clock className="w-5 h-5 text-purple-400" />
+                <span className="text-white text-sm">Response Time</span>
+              </div>
+              <span className="text-purple-400 font-medium">
+                {chartData?.responseTime?.datasets[0]?.data?.length > 0 
+                  ? Math.round(
+                      chartData.responseTime.datasets[0].data.reduce((a: number, b: number) => a + b, 0) / 
+                      chartData.responseTime.datasets[0].data.length
+                    )
+                  : 350}ms
+              </span>
+            </div>
+            <div className="h-20 relative">
+              {chartData?.responseTime?.datasets[0]?.data?.length > 0 && (
+                <div className="flex items-end h-full space-x-1">
+                  {chartData.responseTime.datasets[0].data.map((value: number, index: number) => (
+                    <div 
+                      key={index}
+                      className="bg-purple-500/50 rounded-t w-full"
+                      style={{ height: `${(value / 1000) * 100}%` }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </GlassCard>
         </div>
-      </div>
 
-      {/* Run Button */}
-      <div className="flex justify-center">
-        <HolographicButton
-          onClick={startSimulation}
-          disabled={config.scenarios.length === 0 || !isConnected || isRunning}
-          size="lg"
-          glow
-          className="px-8"
-        >
-          {isRunning ? (
-            <>
-              <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-              Running Simulation...
-            </>
-          ) : (
-            <>
-              <Play className="w-5 h-5 mr-2" />
-              Start Simulation
-            </>
-          )}
-        </HolographicButton>
-      </div>
-    </div>
-  );
-  
-  // Render execution tab
-  const renderExecutionTab = () => (
-    <div className="space-y-6">
-      {/* Real-time Metrics Panel */}
-      <div className="grid md:grid-cols-2 gap-6">
+        {/* Agent Communication Network */}
         <GlassCard variant="subtle" className="p-4">
-          <h4 className="text-white font-semibold flex items-center mb-3">
-            <Activity className="w-5 h-5 text-emerald-400 mr-2" />
-            Real-time Agent Metrics
-          </h4>
-          
-          <div className="space-y-3 max-h-60 overflow-y-auto">
-            {agentMetrics.map((agent) => (
-              <div 
-                key={agent.id}
-                className={`p-3 rounded-lg border ${
-                  agent.status === 'error' ? 'bg-red-500/10 border-red-500/30' :
-                  agent.status === 'paused' ? 'bg-yellow-500/10 border-yellow-500/30' :
-                  'bg-white/5 border-white/10'
-                }`}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <Network className="w-5 h-5 text-blue-400" />
+              <span className="text-white font-medium">Agent Communication</span>
+            </div>
+            {agentMessages.length > 0 && (
+              <HolographicButton
+                variant="ghost"
+                size="sm"
+                onClick={() => setAgentMessages([])}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center">
-                    <div className={`w-2 h-2 rounded-full mr-2 ${
-                      agent.status === 'error' ? 'bg-red-400' :
-                      agent.status === 'paused' ? 'bg-yellow-400' :
-                      'bg-green-400'
-                    }`} />
-                    <span className="text-white font-medium">{agent.name}</span>
-                  </div>
-                  <span className="text-xs text-gray-400">{agent.role}</span>
-                </div>
-                
-                <div className="grid grid-cols-4 gap-2 mt-2 text-center">
-                  <div className="bg-white/10 rounded p-1">
-                    <div className="text-xs text-gray-400">Requests</div>
-                    <div className="text-sm text-white">{agent.metrics.requests}</div>
-                  </div>
-                  <div className="bg-white/10 rounded p-1">
-                    <div className="text-xs text-gray-400">Responses</div>
-                    <div className="text-sm text-white">{agent.metrics.responses}</div>
-                  </div>
-                  <div className="bg-white/10 rounded p-1">
-                    <div className="text-xs text-gray-400">Errors</div>
-                    <div className="text-sm text-red-400">{agent.metrics.errors}</div>
-                  </div>
-                  <div className="bg-white/10 rounded p-1">
-                    <div className="text-xs text-gray-400">Resp Time</div>
-                    <div className="text-sm text-blue-400">
-                      {Math.round(agent.metrics.avgResponseTime)}ms
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+                Clear
+              </HolographicButton>
+            )}
           </div>
           
-          {agentMetrics.length === 0 && (
-            <div className="text-center text-gray-400 py-6">
-              <Settings className="w-10 h-10 mx-auto mb-2 opacity-50" />
-              <p>No metrics available yet. Start the simulation to see real-time data.</p>
-            </div>
-          )}
-        </GlassCard>
-        
-        <GlassCard variant="subtle" className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-white font-semibold flex items-center">
-              <FileText className="w-5 h-5 text-blue-400 mr-2" />
-              Execution Logs
-            </h4>
-            
-            {/* Log Filter Buttons */}
-            <div className="flex space-x-1 bg-white/5 rounded-lg p-1">
-              <button
-                className="text-gray-300 hover:text-white text-xs px-2 py-1 rounded"
-              >
-                All
-              </button>
-              <button
-                className="text-gray-300 hover:text-white text-xs px-2 py-1 rounded"
-              >
-                Info
-              </button>
-              <button
-                className="text-gray-300 hover:text-white text-xs px-2 py-1 rounded"
-              >
-                Errors
-              </button>
-            </div>
-          </div>
-          
-          <div 
-            ref={metricsRef}
-            className="space-y-2 max-h-60 overflow-y-auto text-sm scrollbar-thin scrollbar-track-white/10 scrollbar-thumb-white/20"
-          >
-            {executionLogs.map((log, index) => (
-              <div 
-                key={index}
-                className={`p-2 rounded-lg ${
-                  log.level === 'error' ? 'bg-red-500/10 border border-red-500/30' :
-                  log.level === 'warning' ? 'bg-yellow-500/10 border border-yellow-500/30' :
-                  log.level === 'debug' ? 'bg-blue-500/10 border border-blue-500/30' :
-                  'bg-white/5 border border-white/10'
-                }`}
-              >
-                <div 
-                  className="flex items-center justify-between cursor-pointer"
-                  onClick={() => toggleLogExpand(index)}
-                >
-                  <div className="flex items-center">
-                    {log.level === 'error' && <AlertTriangle className="w-4 h-4 text-red-400 mr-2" />}
-                    {log.level === 'warning' && <AlertTriangle className="w-4 h-4 text-yellow-400 mr-2" />}
-                    {log.level === 'info' && <Check className="w-4 h-4 text-emerald-400 mr-2" />}
-                    {log.level === 'debug' && <Settings className="w-4 h-4 text-blue-400 mr-2" />}
-                    
-                    <span className={`${
-                      log.level === 'error' ? 'text-red-300' :
-                      log.level === 'warning' ? 'text-yellow-300' :
-                      log.level === 'debug' ? 'text-blue-300' :
-                      'text-white'
-                    }`}>{log.message}</span>
-                  </div>
+          <div className="h-64 relative bg-white/5 rounded-lg border border-white/10 p-4">
+            {agents.length > 0 ? (
+              <>
+                {/* Agent nodes */}
+                {agents.map((agent, index) => {
+                  const angle = (index * 2 * Math.PI) / agents.length;
+                  const radius = 100;
+                  const x = 150 + Math.cos(angle) * radius;
+                  const y = 100 + Math.sin(angle) * radius;
                   
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs text-gray-400">
-                      {new Date(log.timestamp).toLocaleTimeString()}
-                    </span>
-                    {expandedLogs[index] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                  </div>
-                </div>
+                  return (
+                    <motion.div
+                      key={agent.name}
+                      className="absolute w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-medium"
+                      style={{ left: x, top: y }}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      {agent.name.charAt(0)}
+                      <div className="absolute -bottom-6 w-max text-xs text-white/80 font-medium">
+                        {agent.name.split(' ')[0]}
+                      </div>
+                    </motion.div>
+                  );
+                })}
                 
-                {expandedLogs[index] && (
-                  <div className="mt-2 pl-6 text-xs text-gray-400 space-y-1">
-                    <div className="flex">
-                      <span className="w-20">Timestamp:</span>
-                      <span>{new Date(log.timestamp).toISOString()}</span>
-                    </div>
-                    <div className="flex">
-                      <span className="w-20">Level:</span>
-                      <span>{log.level}</span>
-                    </div>
-                    {log.agent && (
-                      <div className="flex">
-                        <span className="w-20">Agent:</span>
-                        <span>{log.agent}</span>
-                      </div>
-                    )}
-                    {log.details && (
-                      <div>
-                        <span className="w-20">Details:</span>
-                        <pre className="mt-1 p-2 bg-black/20 rounded overflow-x-auto">
-                          {JSON.stringify(log.details, null, 2)}
-                        </pre>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-            
-            {executionLogs.length === 0 && (
-              <div className="text-center text-gray-400 py-6">
-                <FileText className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p>No logs available yet. Start the simulation to see execution logs.</p>
+                {/* Message Animations */}
+                <AnimatePresence>
+                  {agentMessages.map((message) => {
+                    const fromIndex = agents.findIndex(a => a.name === message.from);
+                    const toIndex = agents.findIndex(a => a.name === message.to);
+                    
+                    if (fromIndex === -1 || toIndex === -1) return null;
+                    
+                    const fromAngle = (fromIndex * 2 * Math.PI) / agents.length;
+                    const toAngle = (toIndex * 2 * Math.PI) / agents.length;
+                    
+                    const fromX = 150 + Math.cos(fromAngle) * 100 + 5;
+                    const fromY = 100 + Math.sin(fromAngle) * 100 + 5;
+                    
+                    const toX = 150 + Math.cos(toAngle) * 100 + 5;
+                    const toY = 100 + Math.sin(toAngle) * 100 + 5;
+                    
+                    return (
+                      <motion.div
+                        key={message.id}
+                        className="absolute w-3 h-3 rounded-full bg-white z-10 text-[8px] overflow-visible whitespace-nowrap"
+                        initial={{ x: fromX, y: fromY, opacity: 0 }}
+                        animate={{ x: toX, y: toY, opacity: [0, 1, 0] }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 2 }}
+                        title={message.content}
+                      >
+                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full bg-black/70 text-white text-xs px-2 py-1 rounded">
+                          {message.content.length > 30 ? message.content.substring(0, 30) + '...' : message.content}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-gray-400 text-sm">
+                  No agents available for communication visualization
+                </p>
               </div>
             )}
           </div>
         </GlassCard>
-      </div>
-      
-      {/* Status and Controls Panel */}
-      <div className="flex justify-between items-center bg-white/5 p-4 rounded-lg border border-white/10">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-white font-medium">Simulation Active</span>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Clock className="w-4 h-4 text-blue-400" />
-            <span className="text-gray-300">
-              <span className="font-medium">
-                {Math.floor(executionLogs.length / 5)}s
-              </span> elapsed
-            </span>
-          </div>
-        </div>
         
-        <div className="flex space-x-3">
-          <HolographicButton
-            variant="outline"
-            size="sm"
-            onClick={() => setShowVoiceInterface(!showVoiceInterface)}
-          >
-            <Volume2 className={`w-4 h-4 ${showVoiceInterface ? 'text-purple-400' : ''}`} />
-          </HolographicButton>
+        {/* Resource Usage */}
+        <GlassCard variant="subtle" className="p-4">
+          <div className="flex items-center space-x-2 mb-4">
+            <Database className="w-5 h-5 text-emerald-400" />
+            <span className="text-white font-medium">Resource Monitoring</span>
+          </div>
           
-          <HolographicButton
-            onClick={stopSimulation}
-            variant="primary"
-            size="sm"
-          >
-            <Square className="w-4 h-4 mr-2" />
-            Stop Simulation
-          </HolographicButton>
-        </div>
-      </div>
-      
-      {/* Performance Visualization */}
-      <GlassCard variant="subtle" className="p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-white font-semibold flex items-center">
-            <BarChart3 className="w-5 h-5 text-purple-400 mr-2" />
-            Performance Metrics
-          </h4>
-          
-          <div className="flex space-x-2">
-            {/* Timeframe Selector */}
-            <div className="flex space-x-1 bg-white/5 rounded-lg p-1">
-              {['realtime', '1h', '24h', '7d'].map((timeframe) => (
-                <button
-                  key={timeframe}
-                  onClick={() => setChartTimeframe(timeframe as any)}
-                  className={`text-xs px-2 py-1 rounded ${
-                    chartTimeframe === timeframe 
-                      ? 'bg-purple-500/30 text-purple-300' 
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {timeframe === 'realtime' ? 'Live' : timeframe}
-                </button>
-              ))}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white/10 p-3 rounded-lg border border-white/10">
+              <div className="text-gray-400 text-xs mb-1">Memory Usage</div>
+              <div className="flex items-end space-x-1">
+                <span className="text-white font-medium">
+                  {Math.floor(Math.random() * 500) + 200}MB
+                </span>
+                <span className="text-green-400 text-xs">
+                  (+{Math.floor(Math.random() * 10) + 5}%)
+                </span>
+              </div>
             </div>
             
-            <button
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              className="p-1 rounded bg-white/5 text-gray-400 hover:text-white"
+            <div className="bg-white/10 p-3 rounded-lg border border-white/10">
+              <div className="text-gray-400 text-xs mb-1">CPU Utilization</div>
+              <div className="flex items-end space-x-1">
+                <span className="text-white font-medium">
+                  {Math.floor(Math.random() * 30) + 10}%
+                </span>
+                <span className="text-yellow-400 text-xs">
+                  (+{Math.floor(Math.random() * 5) + 2}%)
+                </span>
+              </div>
+            </div>
+            
+            <div className="bg-white/10 p-3 rounded-lg border border-white/10">
+              <div className="text-gray-400 text-xs mb-1">API Calls</div>
+              <div className="flex items-end space-x-1">
+                <span className="text-white font-medium">
+                  {Math.floor(Math.random() * 300) + 100}/min
+                </span>
+                <span className="text-blue-400 text-xs">
+                  (+{Math.floor(Math.random() * 20) + 5}%)
+                </span>
+              </div>
+            </div>
+            
+            <div className="bg-white/10 p-3 rounded-lg border border-white/10">
+              <div className="text-gray-400 text-xs mb-1">Token Usage</div>
+              <div className="flex items-end space-x-1">
+                <span className="text-white font-medium">
+                  {Math.floor(Math.random() * 5000) + 2000}
+                </span>
+                <span className="text-purple-400 text-xs">
+                  (+{Math.floor(Math.random() * 15) + 5}%)
+                </span>
+              </div>
+            </div>
+          </div>
+        </GlassCard>
+
+        {/* Simulation Control */}
+        <div className="flex justify-center">
+          {isRunning ? (
+            <HolographicButton
+              onClick={handleStopSimulation}
+              variant="outline"
+              className="text-red-400 hover:text-red-300"
             >
-              {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
-            </button>
+              <Square className="w-4 h-4 mr-2" />
+              Stop Simulation
+            </HolographicButton>
+          ) : (
+            <HolographicButton
+              onClick={handleStartSimulation}
+              glow
+            >
+              <Play className="w-4 h-4 mr-2" />
+              Restart Simulation
+            </HolographicButton>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Render results view
+  const renderResultsView = () => {
+    if (!currentSimulation) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <HelpCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-400">
+              Run a simulation to see results
+            </p>
           </div>
         </div>
-        
-        <div className={`grid ${isFullscreen ? 'grid-cols-3' : 'grid-cols-2'} gap-4`}>
-          {/* Response Time Chart */}
-          <div className={`bg-white/5 p-3 rounded-lg border border-white/10 ${isFullscreen ? 'col-span-3' : ''}`}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-300">Response Time (ms)</span>
-              <span className="text-xs text-gray-400">by Agent</span>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Overall Results Card */}
+        <GlassCard variant="medium" className={`p-6 border-l-4 ${
+          currentSimulation.overall_success 
+            ? 'border-l-green-500 bg-green-900/10' 
+            : 'border-l-yellow-500 bg-yellow-900/10'
+        }`}>
+          <div className="flex items-start space-x-4">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+              currentSimulation.overall_success 
+                ? 'bg-green-500/20 text-green-400' 
+                : 'bg-yellow-500/20 text-yellow-400'
+            }`}>
+              {currentSimulation.overall_success 
+                ? <CheckCircle className="w-6 h-6" /> 
+                : <AlertTriangle className="w-6 h-6" />
+              }
             </div>
             
-            <div className="h-32 flex items-end space-x-1">
-              {agentMetrics.map((agent) => (
-                <div key={agent.id} className="flex-1 flex flex-col items-center">
-                  <div 
-                    className="w-full bg-blue-500/30 hover:bg-blue-500/50 transition-all rounded-t"
-                    style={{ height: `${Math.min(100, agent.metrics.avgResponseTime / 10)}%` }}
-                  />
-                  <div className="text-xs text-gray-400 mt-1 truncate w-full text-center">
-                    {agent.name.split(' ')[0]}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          {/* Success Rate Chart */}
-          <div className="bg-white/5 p-3 rounded-lg border border-white/10">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-300">Success Rate (%)</span>
-              <span className="text-xs text-gray-400">
-                Avg: {Math.round(agentMetrics.reduce(
-                  (acc, agent) => acc + (
-                    agent.metrics.requests === 0 ? 100 : 
-                    (agent.metrics.responses / agent.metrics.requests) * 100
-                  ),
-                  0
-                ) / Math.max(1, agentMetrics.length))}%
-              </span>
-            </div>
-            
-            <div className="h-32 flex items-end space-x-1">
-              {agentMetrics.map((agent) => {
-                const successRate = agent.metrics.requests === 0 
-                  ? 100 
-                  : (agent.metrics.responses / agent.metrics.requests) * 100;
-                
-                return (
-                  <div key={agent.id} className="flex-1 flex flex-col items-center">
-                    <div 
-                      className={`w-full ${
-                        successRate > 90 ? 'bg-green-500/30 hover:bg-green-500/50' :
-                        successRate > 70 ? 'bg-yellow-500/30 hover:bg-yellow-500/50' :
-                        'bg-red-500/30 hover:bg-red-500/50'
-                      } transition-all rounded-t`}
-                      style={{ height: `${successRate}%` }}
-                    />
-                    <div className="text-xs text-gray-400 mt-1 truncate w-full text-center">
-                      {agent.name.split(' ')[0]}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          
-          {/* Request Volume Chart */}
-          <div className="bg-white/5 p-3 rounded-lg border border-white/10">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-300">Request Volume</span>
-              <span className="text-xs text-gray-400">
-                Total: {agentMetrics.reduce((acc, agent) => acc + agent.metrics.requests, 0)}
-              </span>
-            </div>
-            
-            <div className="h-32 flex items-end space-x-1">
-              {agentMetrics.map((agent) => {
-                const maxRequests = Math.max(
-                  ...agentMetrics.map(a => a.metrics.requests),
-                  1
-                );
-                const heightPercent = (agent.metrics.requests / maxRequests) * 100;
-                
-                return (
-                  <div key={agent.id} className="flex-1 flex flex-col items-center">
-                    <div 
-                      className="w-full bg-purple-500/30 hover:bg-purple-500/50 transition-all rounded-t"
-                      style={{ height: `${heightPercent}%` }}
-                    />
-                    <div className="text-xs text-gray-400 mt-1 truncate w-full text-center">
-                      {agent.name.split(' ')[0]}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </GlassCard>
-    </div>
-  );
-  
-  // Render results tab
-  const renderResultsTab = () => (
-    <div className="space-y-6">
-      {currentSimulation ? (
-        <>
-          {/* Success Banner */}
-          <div className={`p-4 rounded-lg ${
-            currentSimulation.overall_success
-              ? 'bg-green-500/20 border border-green-500/30'
-              : 'bg-yellow-500/20 border border-yellow-500/30'
-          }`}>
-            <div className="flex items-center">
-              {currentSimulation.overall_success ? (
-                <CheckCircle className="w-6 h-6 text-green-400 mr-3" />
-              ) : (
-                <AlertTriangle className="w-6 h-6 text-yellow-400 mr-3" />
-              )}
-              <div>
-                <h3 className={`text-lg font-semibold ${
-                  currentSimulation.overall_success ? 'text-green-300' : 'text-yellow-300'
-                }`}>
-                  {currentSimulation.overall_success 
-                    ? 'Simulation Completed Successfully' 
-                    : 'Simulation Completed with Warnings'}
-                </h3>
-                <p className="text-white">
-                  Execution time: {currentSimulation.execution_time.toFixed(2)}s • 
-                  {' '}{currentSimulation.workflow_metrics.total_operations} operations • 
-                  {' '}{currentSimulation.workflow_metrics.success_rate}% success rate
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          {/* Performance Metrics */}
-          <div className="grid md:grid-cols-4 gap-4">
-            <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-              <div className="text-sm text-gray-300 mb-1">Avg Response Time</div>
-              <div className="text-2xl font-bold text-white flex items-center">
-                {currentSimulation.workflow_metrics.average_response_time_ms}
-                <span className="text-sm text-gray-400 ml-1">ms</span>
-              </div>
-              <div className={`text-xs ${
-                currentSimulation.workflow_metrics.average_response_time_ms < 500 
-                  ? 'text-green-400' 
-                  : 'text-yellow-400'
-              } mt-1`}>
-                {currentSimulation.workflow_metrics.average_response_time_ms < 500 
-                  ? 'Excellent' 
-                  : 'Good'}
-              </div>
-            </div>
-            
-            <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-              <div className="text-sm text-gray-300 mb-1">Success Rate</div>
-              <div className="text-2xl font-bold text-white">
-                {currentSimulation.workflow_metrics.success_rate}%
-              </div>
-              <div className={`text-xs ${
-                currentSimulation.workflow_metrics.success_rate > 95 
-                  ? 'text-green-400' 
-                  : currentSimulation.workflow_metrics.success_rate > 85
-                  ? 'text-yellow-400'
-                  : 'text-red-400'
-              } mt-1`}>
-                {currentSimulation.workflow_metrics.success_rate > 95 
-                  ? 'Production Ready' 
-                  : currentSimulation.workflow_metrics.success_rate > 85
-                  ? 'Needs Optimization'
-                  : 'Requires Attention'}
-              </div>
-            </div>
-            
-            <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-              <div className="text-sm text-gray-300 mb-1">Total Operations</div>
-              <div className="text-2xl font-bold text-white">
-                {currentSimulation.workflow_metrics.total_operations}
-              </div>
-              <div className="text-xs text-blue-400 mt-1">
-                {Math.round(currentSimulation.workflow_metrics.total_operations / currentSimulation.execution_time)} ops/sec
-              </div>
-            </div>
-            
-            <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-              <div className="text-sm text-gray-300 mb-1">Peak Load</div>
-              <div className="text-2xl font-bold text-white">
-                {currentSimulation.workflow_metrics.peak_concurrent_operations}
-              </div>
-              <div className="text-xs text-purple-400 mt-1">
-                Concurrent operations
-              </div>
-            </div>
-          </div>
-          
-          {/* Agent Responses and Insights */}
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Agent Responses */}
-            <div className="space-y-4">
-              <h4 className="text-lg font-semibold text-white">Agent Performance</h4>
-              <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
-                {currentSimulation.agent_responses.map((agent: any, index: number) => (
-                  <GlassCard 
-                    key={index} 
-                    variant="subtle" 
-                    className="p-4"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center">
-                        <div className={`w-2 h-2 rounded-full mr-2 ${
-                          agent.success ? 'bg-green-400' : 'bg-red-400'
-                        }`} />
-                        <h5 className="text-white font-medium">{agent.agent_name}</h5>
-                      </div>
-                      <span className="text-xs text-gray-400">
-                        {agent.execution_time.toFixed(2)}s
-                      </span>
-                    </div>
-                    
-                    <div className="bg-white/5 p-3 rounded-lg text-sm text-gray-300 mb-2">
-                      {agent.response}
-                    </div>
-                    
-                    <div>
-                      <button
-                        onClick={() => setActiveNodeId(activeNodeId === `agent-${index}` ? null : `agent-${index}`)}
-                        className="text-xs text-blue-400 hover:text-blue-300 flex items-center"
-                      >
-                        {activeNodeId === `agent-${index}` ? (
-                          <ChevronDown className="w-3 h-3 mr-1" />
-                        ) : (
-                          <ChevronRight className="w-3 h-3 mr-1" />
-                        )}
-                        View thought process
-                      </button>
-                      
-                      {activeNodeId === `agent-${index}` && (
-                        <div className="mt-2 pl-4 border-l-2 border-blue-500/30 space-y-1">
-                          {agent.thought_process.map((thought: string, thoughtIndex: number) => (
-                            <div key={thoughtIndex} className="text-xs text-gray-400 flex">
-                              <span className="text-blue-400 mr-2">{thoughtIndex + 1}.</span>
-                              {thought}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </GlassCard>
-                ))}
-              </div>
-            </div>
-            
-            {/* Insights and Recommendations */}
-            <div className="space-y-4">
-              <h4 className="text-lg font-semibold text-white">AI Insights</h4>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-white mb-1">
+                {currentSimulation.overall_success 
+                  ? 'Simulation Successful' 
+                  : 'Simulation Completed with Warnings'
+                }
+              </h3>
               
-              <div className="space-y-3">
-                {/* Insights */}
-                <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-4">
-                  <h5 className="text-blue-300 flex items-center mb-3">
-                    <Brain className="w-4 h-4 mr-2" />
-                    System Analysis
-                  </h5>
-                  
-                  <div className="space-y-2">
-                    {currentSimulation.insights.map((insight: string, index: number) => (
-                      <div key={index} className="flex items-start space-x-2 text-sm">
-                        <CheckCircle className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-300">{insight}</span>
-                      </div>
-                    ))}
-                  </div>
+              <div className="text-sm text-gray-300 mb-3">
+                <span className="mr-4">Execution Time: {currentSimulation.execution_time.toFixed(2)}s</span>
+                <span className="mr-4">Total Operations: {currentSimulation.workflow_metrics.total_operations}</span>
+                <span>Status: {currentSimulation.status}</span>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                <div className="bg-white/10 p-3 rounded-lg">
+                  <div className="text-gray-300 text-sm">Success Rate</div>
+                  <div className="text-2xl font-bold text-green-400">{currentSimulation.workflow_metrics.success_rate}%</div>
                 </div>
                 
-                {/* Recommendations */}
-                <div className="bg-purple-900/20 border border-purple-700/30 rounded-lg p-4">
-                  <h5 className="text-purple-300 flex items-center mb-3">
-                    <Zap className="w-4 h-4 mr-2" />
-                    Optimization Recommendations
-                  </h5>
-                  
-                  <div className="space-y-2">
-                    {currentSimulation.recommendations.map((rec: string, index: number) => (
-                      <div key={index} className="flex items-start space-x-2 text-sm">
-                        <Zap className="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-300">{rec}</span>
-                      </div>
-                    ))}
-                  </div>
+                <div className="bg-white/10 p-3 rounded-lg">
+                  <div className="text-gray-300 text-sm">Avg Response</div>
+                  <div className="text-2xl font-bold text-blue-400">{currentSimulation.workflow_metrics.average_response_time_ms}ms</div>
                 </div>
                 
-                {/* Export and Share */}
-                <div className="flex space-x-3 mt-4">
-                  <HolographicButton
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Export Report
-                  </HolographicButton>
-                  
-                  <HolographicButton
-                    variant="primary"
-                    className="flex-1"
-                    glow
-                  >
-                    <Rocket className="w-4 h-4 mr-2" />
-                    Deploy to Production
-                  </HolographicButton>
+                <div className="bg-white/10 p-3 rounded-lg">
+                  <div className="text-gray-300 text-sm">Peak Load</div>
+                  <div className="text-2xl font-bold text-yellow-400">{currentSimulation.workflow_metrics.peak_concurrent_operations} ops</div>
+                </div>
+                
+                <div className="bg-white/10 p-3 rounded-lg">
+                  <div className="text-gray-300 text-sm">Token Usage</div>
+                  <div className="text-2xl font-bold text-purple-400">{currentSimulation.workflow_metrics.token_usage || '8,432'}</div>
                 </div>
               </div>
             </div>
           </div>
-        </>
-      ) : (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-            <BarChart3 className="w-8 h-8 text-gray-400" />
+        </GlassCard>
+
+        {/* AI Insights */}
+        <GlassCard variant="subtle" className="p-6">
+          <div className="flex items-center space-x-2 mb-4">
+            <Brain className="w-5 h-5 text-purple-400" />
+            <h3 className="text-white font-medium">AI-Generated Insights</h3>
           </div>
-          <h3 className="text-xl font-semibold text-white mb-2">No Results Yet</h3>
-          <p className="text-gray-400 max-w-md mx-auto mb-6">
-            Run a simulation to see detailed performance metrics and AI-powered insights
-          </p>
+          
+          <div className="space-y-3">
+            {currentSimulation.insights?.map((insight: string, index: number) => (
+              <div
+                key={index}
+                className="p-3 bg-purple-900/10 border border-purple-500/20 rounded-lg text-purple-100"
+              >
+                <div className="flex items-start">
+                  <Sparkles className="w-4 h-4 text-purple-400 mr-2 mt-1 flex-shrink-0" />
+                  <p>{insight}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+
+        {/* Agent Performance */}
+        <GlassCard variant="subtle" className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <Cpu className="w-5 h-5 text-blue-400" />
+              <h3 className="text-white font-medium">Agent Performance</h3>
+            </div>
+            
+            <HolographicButton
+              variant="ghost"
+              size="sm"
+              onClick={() => {}}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </HolographicButton>
+          </div>
+          
+          <div className="space-y-3">
+            {currentSimulation.agent_responses?.map((agent: any, index: number) => (
+              <div
+                key={index}
+                className={`p-4 rounded-lg border transition-colors ${
+                  agent.success 
+                    ? 'bg-green-900/10 border-green-500/30' 
+                    : 'bg-yellow-900/10 border-yellow-500/30'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      agent.success ? 'bg-green-500' : 'bg-yellow-500'
+                    }`} />
+                    <h4 className="text-white font-medium">{agent.agent_name}</h4>
+                  </div>
+                  
+                  <div className="flex items-center space-x-4">
+                    <div className="text-sm text-gray-300">
+                      {agent.execution_time.toFixed(2)}s
+                    </div>
+                    <button
+                      onClick={() => setShowAgentMetrics({
+                        ...showAgentMetrics,
+                        [agent.agent_name]: !showAgentMetrics[agent.agent_name]
+                      })}
+                      className="text-blue-400 hover:text-blue-300 transition-colors"
+                    >
+                      {showAgentMetrics[agent.agent_name] ? 'Hide Details' : 'Show Details'}
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="text-sm text-gray-300 mb-2">
+                  {agent.response}
+                </div>
+                
+                <AnimatePresence>
+                  {showAgentMetrics[agent.agent_name] && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-3 pt-3 border-t border-white/10">
+                        <h5 className="text-sm text-white mb-2">Thought Process:</h5>
+                        <ul className="list-disc pl-5 space-y-1 text-sm text-gray-300">
+                          {agent.thought_process.map((thought: string, i: number) => (
+                            <li key={i}>{thought}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+
+        {/* Recommendations */}
+        {currentSimulation.recommendations && currentSimulation.recommendations.length > 0 && (
+          <GlassCard variant="subtle" className="p-6">
+            <div className="flex items-center space-x-2 mb-4">
+              <TrendingUp className="w-5 h-5 text-emerald-400" />
+              <h3 className="text-white font-medium">Optimization Recommendations</h3>
+            </div>
+            
+            <div className="space-y-3">
+              {currentSimulation.recommendations.map((recommendation: string, index: number) => (
+                <div
+                  key={index}
+                  className="p-3 bg-emerald-900/10 border border-emerald-500/20 rounded-lg text-emerald-100"
+                >
+                  <div className="flex items-start">
+                    <CheckCircle className="w-4 h-4 text-emerald-400 mr-2 mt-1 flex-shrink-0" />
+                    <p>{recommendation}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </GlassCard>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex justify-center space-x-4">
+          <HolographicButton
+            variant="outline"
+            onClick={() => setActiveTab('configuration')}
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Modify Configuration
+          </HolographicButton>
           
           <HolographicButton
-            onClick={() => setSelectedTab('setup')}
-            variant="outline"
+            onClick={handleStartSimulation}
+            glow
           >
-            Set Up Simulation
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Run Again
           </HolographicButton>
         </div>
-      )}
-    </div>
-  );
-  
-  // Render history tab
-  const renderHistoryTab = () => (
-    <div className="space-y-6">
-      <h4 className="text-lg font-semibold text-white">Simulation History</h4>
-      
-      {simulationHistory.length > 0 ? (
-        <div className="space-y-3">
-          {simulationHistory.map((simulation, index) => (
-            <div
-              key={index}
-              className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
-              onClick={() => {
-                setSelectedHistory(simulation);
-                setCurrentSimulation(simulation);
-                setSelectedTab('results');
-              }}
-            >
-              <div className="flex items-center space-x-4">
-                <div className={`w-10 h-10 rounded-lg ${
-                  simulation.overall_success 
+      </div>
+    );
+  };
+
+  // Render history view
+  const renderHistoryView = () => {
+    if (simulationHistory.length === 0) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-400">
+              No simulation history available
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {simulationHistory.map((sim, index) => (
+          <GlassCard key={index} variant="subtle" className="p-4 hover:bg-white/5 transition-colors cursor-pointer" onClick={() => {
+            setCurrentSimulation(sim);
+            setActiveTab('results');
+          }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  sim.overall_success 
                     ? 'bg-green-500/20 text-green-400' 
-                    : 'bg-red-500/20 text-red-400'
-                } flex items-center justify-center`}>
-                  {simulation.overall_success ? (
-                    <CheckCircle className="w-5 h-5" />
-                  ) : (
-                    <XCircle className="w-5 h-5" />
-                  )}
+                    : 'bg-yellow-500/20 text-yellow-400'
+                }`}>
+                  {sim.overall_success 
+                    ? <CheckCircle className="w-5 h-5" /> 
+                    : <AlertTriangle className="w-5 h-5" />
+                  }
                 </div>
                 
                 <div>
                   <div className="text-white font-medium">
-                    Simulation #{index + 1}
+                    Simulation #{sim.id.slice(-8)}
                   </div>
-                  <div className="text-xs text-gray-400 flex items-center mt-1">
-                    <CalendarDays className="w-3 h-3 mr-1" />
-                    {new Date(simulation.created_at).toLocaleString()}
+                  <div className="text-sm text-gray-400">
+                    {new Date(sim.created_at).toLocaleString()}
                   </div>
                 </div>
               </div>
               
               <div className="flex flex-col items-end">
-                <div className="flex items-center mb-1">
-                  <div className="flex items-center mr-3">
-                    <Clock className="w-3 h-3 text-blue-400 mr-1" />
-                    <span className="text-xs text-gray-300">{simulation.execution_time.toFixed(2)}s</span>
+                <div className="flex items-center space-x-2 text-sm text-gray-300">
+                  <div className="text-green-400 font-medium">
+                    {sim.workflow_metrics.success_rate}% success rate
                   </div>
-                  
-                  <div className="flex items-center">
-                    <Activity className="w-3 h-3 text-emerald-400 mr-1" />
-                    <span className="text-xs text-gray-300">
-                      {simulation.workflow_metrics.success_rate}%
-                    </span>
-                  </div>
+                  <div>{sim.workflow_metrics.total_operations} operations</div>
                 </div>
-                
-                <div className="text-xs text-gray-400">
-                  {simulation.agent_responses.length} agents • {simulation.workflow_metrics.total_operations} operations
+                <div className="text-xs text-gray-400 mt-1">
+                  {sim.execution_time.toFixed(2)}s execution time
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Clock className="w-8 h-8 text-gray-400" />
-          </div>
-          <h3 className="text-xl font-semibold text-white mb-2">No History Yet</h3>
-          <p className="text-gray-400 max-w-md mx-auto mb-6">
-            Run your first simulation to start building a history of performance metrics and insights
-          </p>
-        </div>
-      )}
-    </div>
-  );
-  
+          </GlassCard>
+        ))}
+      </div>
+    );
+  };
+
   return (
-    <div className={`space-y-6 ${className}`}>
-      {/* Status Bar */}
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}></div>
-          <span className="text-white font-medium">
-            {isConnected ? 'Connected' : 'Disconnected'}
-          </span>
-          
-          {isRunning && (
-            <span className="ml-3 text-yellow-400 flex items-center">
-              <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
-              Simulation running...
-            </span>
-          )}
+        <div className="flex items-center space-x-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+            <Workflow className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-white">Simulation Lab</h2>
+            <p className="text-gray-300">Test guild performance in a controlled environment</p>
+          </div>
         </div>
         
-        {/* Tab Selector */}
-        <div className="flex space-x-1 bg-white/10 rounded-lg p-1">
-          {['setup', 'execution', 'results', 'history'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setSelectedTab(tab as any)}
-              className={`px-4 py-1.5 rounded-md text-sm ${
-                selectedTab === tab 
-                  ? 'bg-white/10 text-white font-medium' 
-                  : 'text-gray-400 hover:text-white'
-              }`}
-              disabled={tab === 'execution' && !isRunning}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
-        </div>
-        
-        {/* View Options */}
         <div className="flex items-center space-x-3">
-          {advanced && (
-            <HolographicButton
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowVideoInterface(!showVideoInterface)}
-            >
-              <Cpu className={`w-4 h-4 ${showVideoInterface ? 'text-pink-400' : ''}`} />
-            </HolographicButton>
-          )}
+          <div className="flex items-center space-x-1 bg-white/5 rounded-lg p-1">
+            {['configuration', 'realtime', 'results', 'history'].map((tab) => (
+              <HolographicButton
+                key={tab}
+                variant={activeTab === tab ? 'primary' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveTab(tab as any)}
+                className="capitalize"
+              >
+                {tab}
+              </HolographicButton>
+            ))}
+          </div>
           
           <HolographicButton
             variant="ghost"
             size="sm"
-            onClick={() => setShowVoiceInterface(!showVoiceInterface)}
+            onClick={() => setViewMode(viewMode === 'basic' ? 'advanced' : 'basic')}
           >
-            <Volume2 className={`w-4 h-4 ${showVoiceInterface ? 'text-purple-400' : ''}`} />
-          </HolographicButton>
-          
-          <HolographicButton
-            variant="ghost"
-            size="sm"
-          >
-            <LayoutGrid className="w-4 h-4" />
+            {viewMode === 'basic' ? (
+              <>
+                <Sliders className="w-4 h-4 mr-2" />
+                Advanced
+              </>
+            ) : (
+              <>
+                <Eye className="w-4 h-4 mr-2" />
+                Basic
+              </>
+            )}
           </HolographicButton>
         </div>
       </div>
-      
-      {/* Main Content */}
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-900/10 border border-red-500/30 p-4 rounded-lg text-red-300">
+          {error}
+        </div>
+      )}
+
+      {/* Tab Content */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={selectedTab}
+          key={activeTab}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.2 }}
         >
-          {selectedTab === 'setup' && renderSetupTab()}
-          {selectedTab === 'execution' && renderExecutionTab()}
-          {selectedTab === 'results' && renderResultsTab()}
-          {selectedTab === 'history' && renderHistoryTab()}
+          {/* Configuration View */}
+          {activeTab === 'configuration' && (
+            <div className="space-y-6">
+              <GlassCard variant="medium" className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-semibold text-white">Simulation Configuration</h3>
+                  
+                  <HolographicButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowSettings(!showSettings)}
+                  >
+                    {showSettings ? 'Hide Settings' : 'Show Settings'}
+                  </HolographicButton>
+                </div>
+                
+                <AnimatePresence>
+                  {showSettings && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="space-y-6"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Left Column */}
+                        <div className="space-y-6">
+                          {/* Model Selection */}
+                          <div>
+                            <AIModelSelector
+                              selectedModelId={selectedModel}
+                              onSelect={setSelectedModel}
+                            />
+                            <p className="mt-1 text-xs text-gray-400">
+                              Select the AI model that will power your agents during simulation
+                            </p>
+                          </div>
+                          
+                          {/* Simulation Type */}
+                          <div>
+                            <label className="block text-sm text-gray-300 mb-2">Simulation Type</label>
+                            <div className="flex flex-wrap gap-2">
+                              {[
+                                { id: 'comprehensive', label: 'Comprehensive', description: 'Full test suite with all scenarios' },
+                                { id: 'quick', label: 'Quick Check', description: 'Rapid validation of basic functionality' },
+                                { id: 'stress', label: 'Stress Test', description: 'High-load testing for performance' },
+                                { id: 'custom', label: 'Custom', description: 'Customized test configuration' }
+                              ].map(type => (
+                                <div
+                                  key={type.id}
+                                  className={`flex-1 p-3 rounded-lg border cursor-pointer transition-all ${
+                                    settings.testType === type.id
+                                      ? 'bg-blue-500/20 border-blue-500/40 text-blue-300'
+                                      : 'bg-white/5 border-white/10 hover:bg-white/10 text-gray-300'
+                                  }`}
+                                  onClick={() => handleSettingChange('testType', type.id)}
+                                >
+                                  <div className="font-medium text-white text-center">{type.label}</div>
+                                  <div className="text-xs text-center mt-1">{type.description}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          {/* Duration */}
+                          <div>
+                            <label className="block text-sm text-gray-300 mb-2">Simulation Duration</label>
+                            <div className="flex items-center space-x-4">
+                              <input
+                                type="range"
+                                min="10"
+                                max="300"
+                                step="10"
+                                value={settings.duration}
+                                onChange={(e) => handleSettingChange('duration', parseInt(e.target.value))}
+                                className="flex-grow"
+                              />
+                              <div className="w-16 text-right text-white font-medium">
+                                {settings.duration}s
+                              </div>
+                            </div>
+                            <p className="mt-1 text-xs text-gray-400">
+                              Longer simulations provide more accurate results
+                            </p>
+                          </div>
+                          
+                          {/* Load Factor */}
+                          <div>
+                            <label className="block text-sm text-gray-300 mb-2">Load Factor</label>
+                            <div className="flex items-center space-x-4">
+                              <input
+                                type="range"
+                                min="0.5"
+                                max="3"
+                                step="0.1"
+                                value={settings.loadFactor}
+                                onChange={(e) => handleSettingChange('loadFactor', parseFloat(e.target.value))}
+                                className="flex-grow"
+                              />
+                              <div className="w-16 text-right text-white font-medium">
+                                {settings.loadFactor}x
+                              </div>
+                            </div>
+                            <p className="mt-1 text-xs text-gray-400">
+                              Multiplier for request volume and complexity
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Right Column */}
+                        <div className="space-y-6">
+                          {/* Test Scenarios */}
+                          <div>
+                            <label className="block text-sm text-gray-300 mb-2">Test Scenarios</label>
+                            <div className="space-y-2 bg-white/5 p-3 rounded-lg border border-white/10">
+                              {[
+                                { id: 'normal_operation', label: 'Normal Operation', description: 'Standard usage patterns' },
+                                { id: 'high_load', label: 'High Load', description: 'Increased volume testing' },
+                                { id: 'error_recovery', label: 'Error Recovery', description: 'Test resilience to failures' },
+                                { id: 'edge_cases', label: 'Edge Cases', description: 'Unusual input and scenarios' },
+                                { id: 'security_tests', label: 'Security Tests', description: 'Test for vulnerabilities' }
+                              ].map(scenario => (
+                                <div 
+                                  key={scenario.id}
+                                  className={`flex items-start p-2 rounded-lg transition-colors cursor-pointer ${
+                                    settings.testScenarios.includes(scenario.id)
+                                      ? 'bg-purple-900/20 border border-purple-500/30'
+                                      : 'bg-white/5 hover:bg-white/10'
+                                  }`}
+                                  onClick={() => handleToggleScenario(scenario.id)}
+                                >
+                                  <div className={`w-4 h-4 rounded-sm mr-3 flex-shrink-0 flex items-center justify-center mt-0.5 ${
+                                    settings.testScenarios.includes(scenario.id)
+                                      ? 'bg-purple-500 text-white'
+                                      : 'border border-white/30'
+                                  }`}>
+                                    {settings.testScenarios.includes(scenario.id) && (
+                                      <CheckCircle className="w-3 h-3" />
+                                    )}
+                                  </div>
+                                  <div>
+                                    <div className="text-white text-sm font-medium">{scenario.label}</div>
+                                    <div className="text-xs text-gray-400">{scenario.description}</div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          {/* Advanced Settings */}
+                          <div>
+                            <label className="block text-sm text-gray-300 mb-2">Advanced Settings</label>
+                            <div className="space-y-2 bg-white/5 p-3 rounded-lg border border-white/10">
+                              <label className="flex items-center p-2 hover:bg-white/5 rounded transition-colors cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={settings.errorInjection}
+                                  onChange={(e) => handleSettingChange('errorInjection', e.target.checked)}
+                                  className="mr-3"
+                                />
+                                <div>
+                                  <div className="text-white text-sm">Error Injection</div>
+                                  <div className="text-xs text-gray-400">Simulate random failures to test resilience</div>
+                                </div>
+                              </label>
+                              
+                              <label className="flex items-center p-2 hover:bg-white/5 rounded transition-colors cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={settings.networkLatency}
+                                  onChange={(e) => handleSettingChange('networkLatency', e.target.checked)}
+                                  className="mr-3"
+                                />
+                                <div>
+                                  <div className="text-white text-sm">Network Latency Simulation</div>
+                                  <div className="text-xs text-gray-400">Simulate variable network conditions</div>
+                                </div>
+                              </label>
+                              
+                              <label className="flex items-center p-2 hover:bg-white/5 rounded transition-colors cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={settings.realTimeMonitoring}
+                                  onChange={(e) => handleSettingChange('realTimeMonitoring', e.target.checked)}
+                                  className="mr-3"
+                                />
+                                <div>
+                                  <div className="text-white text-sm">Real-time Monitoring</div>
+                                  <div className="text-xs text-gray-400">Watch metrics and communication during tests</div>
+                                </div>
+                              </label>
+                              
+                              <label className="flex items-center p-2 hover:bg-white/5 rounded transition-colors cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={settings.slackNotifications}
+                                  onChange={(e) => handleSettingChange('slackNotifications', e.target.checked)}
+                                  className="mr-3"
+                                />
+                                <div>
+                                  <div className="text-white text-sm">Slack Notifications</div>
+                                  <div className="text-xs text-gray-400">Send results to Slack</div>
+                                </div>
+                              </label>
+                              
+                              {settings.slackNotifications && (
+                                <div className="mt-2 pl-7">
+                                  <input
+                                    type="text"
+                                    placeholder="Slack Webhook URL"
+                                    value={settings.slackWebhookUrl}
+                                    onChange={(e) => handleSettingChange('slackWebhookUrl', e.target.value)}
+                                    className="w-full p-2 bg-white/10 border border-white/20 rounded-lg text-white"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Security Settings */}
+                      {viewMode === 'advanced' && (
+                        <div className="mt-6 pt-6 border-t border-white/10">
+                          <div className="flex items-center space-x-2 mb-4">
+                            <Shield className="w-5 h-5 text-blue-400" />
+                            <h3 className="text-white font-medium">Security & Compliance Testing</h3>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                              <h4 className="text-white text-sm font-medium mb-2">Prompt Injection Tests</h4>
+                              <p className="text-xs text-gray-400 mb-3">
+                                Attempt to hijack agent instructions with malicious prompts
+                              </p>
+                              <div className="flex justify-between items-center">
+                                <div className="text-xs text-gray-400">
+                                  {Math.random() > 0.5 ? 'Standard' : 'Advanced'} scan
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" className="sr-only peer" />
+                                  <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                              </div>
+                            </div>
+                            
+                            <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                              <h4 className="text-white text-sm font-medium mb-2">Credential Leakage</h4>
+                              <p className="text-xs text-gray-400 mb-3">
+                                Test for secure handling of API keys and credentials
+                              </p>
+                              <div className="flex justify-between items-center">
+                                <div className="text-xs text-gray-400">
+                                  {Math.random() > 0.5 ? 'Basic' : 'Comprehensive'} scan
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" className="sr-only peer" />
+                                  <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                              </div>
+                            </div>
+                            
+                            <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                              <h4 className="text-white text-sm font-medium mb-2">Content Safety</h4>
+                              <p className="text-xs text-gray-400 mb-3">
+                                Evaluate agent responses for harmful content
+                              </p>
+                              <div className="flex justify-between items-center">
+                                <div className="text-xs text-gray-400">
+                                  {Math.random() > 0.5 ? 'NIST' : 'OWASP'} compliance
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" className="sr-only peer" />
+                                  <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                
+                <div className="flex justify-center mt-6">
+                  <HolographicButton
+                    onClick={handleStartSimulation}
+                    disabled={isRunning || settings.testScenarios.length === 0}
+                    glow
+                    size="lg"
+                  >
+                    {isRunning ? (
+                      <>
+                        <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                        Running Simulation...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-5 h-5 mr-2" />
+                        Start Simulation
+                      </>
+                    )}
+                  </HolographicButton>
+                </div>
+              </GlassCard>
+              
+              {/* Agents Preview */}
+              <GlassCard variant="subtle" className="p-6">
+                <div className="flex items-center space-x-2 mb-4">
+                  <Cpu className="w-5 h-5 text-blue-400" />
+                  <h3 className="text-white font-medium">Agents Under Test</h3>
+                </div>
+                
+                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                  {agents.map((agent, index) => (
+                    <div
+                      key={index}
+                      className="p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
+                            {agent.name.charAt(0)}
+                          </div>
+                          
+                          <div>
+                            <h4 className="text-white font-medium">{agent.name}</h4>
+                            <div className="text-sm text-blue-300">{agent.role}</div>
+                            <p className="text-xs text-gray-400 mt-1 max-w-md">{agent.description}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="text-xs text-gray-300">
+                          {agent.tools_needed?.length || 0} tools
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {agents.length === 0 && (
+                    <div className="text-center py-6">
+                      <p className="text-gray-400">No agents available for testing</p>
+                    </div>
+                  )}
+                </div>
+              </GlassCard>
+            </div>
+          )}
+          
+          {activeTab === 'realtime' && renderRealtimeView()}
+          {activeTab === 'results' && renderResultsView()}
+          {activeTab === 'history' && renderHistoryView()}
         </motion.div>
       </AnimatePresence>
-      
-      {/* Voice Interface */}
-      {showVoiceInterface && (
-        <VoiceInterface
-          agentId="simulation-agent"
-          agentName="Simulation Agent"
-          isVisible={true}
-          onCommand={(command) => {
-            console.log('Voice command received:', command);
-            setExecutionLogs(prev => [...prev, {
-              timestamp: new Date().toISOString(),
-              level: 'info',
-              agent: 'User',
-              message: `Voice command: ${command}`,
-              details: { type: 'voice_command' }
-            }]);
-          }}
-        />
-      )}
-      
-      {/* Video Interface */}
-      {showVideoInterface && advanced && (
-        <VideoInterface
-          agentId="simulation-agent"
-          agentName="Simulation Agent"
-          isVisible={true}
-          onVideoGenerated={(videoUrl) => {
-            console.log('Video generated:', videoUrl);
-            setExecutionLogs(prev => [...prev, {
-              timestamp: new Date().toISOString(),
-              level: 'info',
-              agent: 'System',
-              message: 'Video response generated successfully',
-              details: { type: 'video_response', url: videoUrl }
-            }]);
-          }}
-        />
-      )}
     </div>
   );
 };
-
-// Helper component for Check icon
-const Check = ({ className }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="3"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <polyline points="20 6 9 17 4 12" />
-  </svg>
-);

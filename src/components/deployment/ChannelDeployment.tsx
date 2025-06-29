@@ -16,6 +16,7 @@ import {
 import { GlassCard } from '../ui/GlassCard';
 import { HolographicButton } from '../ui/HolographicButton';
 import { deploymentService, Channel } from '../../services/deploymentService';
+import { useState } from 'react';
 
 interface ChannelDeploymentProps {
   guildId: string;
@@ -23,6 +24,9 @@ interface ChannelDeploymentProps {
   onDeploymentComplete?: (result: any) => void;
 }
 
+/**
+ * Enhanced multi-channel deployment component
+ */
 export const ChannelDeployment: React.FC<ChannelDeploymentProps> = ({
   guildId,
   guildName,
@@ -92,7 +96,7 @@ export const ChannelDeployment: React.FC<ChannelDeploymentProps> = ({
   
   const handleDeployChannels = async () => {
     if (channels.length === 0) {
-      setError('Please add at least one channel');
+      setError('Please add at least one channel to deploy');
       return;
     }
     
@@ -101,8 +105,14 @@ export const ChannelDeployment: React.FC<ChannelDeploymentProps> = ({
     
     try {
       const result = await deploymentService.createChannelDeployment(guildId, channels);
-      
       setDeploymentResult(result);
+      
+      // Save channels to local storage for persistence
+      try {
+        localStorage.setItem(`guild_${guildId}_channels`, JSON.stringify(channels));
+      } catch (e) {
+        console.warn('Failed to save channels to localStorage:', e);
+      }
       
       if (onDeploymentComplete) {
         onDeploymentComplete(result);
@@ -118,10 +128,13 @@ export const ChannelDeployment: React.FC<ChannelDeploymentProps> = ({
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code)
       .then(() => {
-        alert('Code copied to clipboard!');
+        console.log('Code copied to clipboard!');
+        setError('Code copied to clipboard!');
+        setTimeout(() => setError(null), 2000);
       })
       .catch(err => {
-        console.error('Failed to copy:', err);
+        console.error('Failed to copy code:', err);
+        setError('Failed to copy code to clipboard');
       });
   };
   
@@ -151,11 +164,12 @@ export const ChannelDeployment: React.FC<ChannelDeploymentProps> = ({
   
   // Get web widget installation code
   const getWebWidgetCode = () => {
+    // Include guildId and channel data in the widget config
     const widgetConfig = {
       guildId,
-      theme: 'light',
-      position: 'bottom-right',
-      greeting: `Welcome! How can ${guildName} help you?`
+      theme: newChannel.config.theme || 'light',
+      position: newChannel.config.position || 'bottom-right',
+      greeting: newChannel.config.greeting || `Welcome! How can ${guildName} help you?`
     };
     
     return `<script>
@@ -398,8 +412,13 @@ export const ChannelDeployment: React.FC<ChannelDeploymentProps> = ({
             </div>
           )}
           
+          {/* Error/Success display */}
           {error && (
-            <div className="bg-red-900/20 border border-red-700/30 text-red-300 p-4 rounded-lg">
+            <div className={`mt-4 p-3 rounded-lg ${
+              error.includes('copied') 
+                ? 'bg-green-500/20 border border-green-500/30 text-green-300' 
+                : 'bg-red-500/20 border border-red-500/30 text-red-300'
+            }`}>
               {error}
             </div>
           )}
