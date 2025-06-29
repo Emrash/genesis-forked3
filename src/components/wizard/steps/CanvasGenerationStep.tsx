@@ -68,7 +68,20 @@ export const CanvasGenerationStep: React.FC = () => {
   };
 
   const handleContinue = () => {
-    setStep('canvas');
+    if (workflowNodes.length > 0 && workflowEdges.length > 0) {
+      setStep('canvas');
+    } else {
+      // If canvas generation failed, try one more time
+      loadCanvasFromBlueprint();
+      setTimeout(() => {
+        if (workflowNodes.length > 0) {
+          setStep('canvas');
+        } else {
+          setStep('canvas');
+          console.error('Canvas generation failed multiple times');
+        }
+      }, 2000);
+    }
   };
 
   const handleCustomize = () => {
