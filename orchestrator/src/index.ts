@@ -174,11 +174,24 @@ app.get("/", (req, res) => {
   const elevenlabs_key = process.env.ELEVENLABS_API_KEY;
   const pinecone_key = process.env.PINECONE_API_KEY;
   const redis_url = process.env.REDIS_URL;
+  const agentServiceUrl = process.env.AGENT_SERVICE_URL || 'http://localhost:8001';
   
   const gemini_configured = Boolean(gemini_key && !gemini_key.startsWith('your_'));
   const elevenlabs_configured = Boolean(elevenlabs_key && !elevenlabs_key.startsWith('your_'));
   const pinecone_configured = Boolean(pinecone_key && !pinecone_key.startsWith('your_'));
   const redis_configured = Boolean(redis_url && !redis_url.startsWith('your_'));
+  
+  // Determine available services
+  const availableServices = [];
+  if (gemini_configured) availableServices.push('Gemini AI');
+  if (elevenlabs_configured) availableServices.push('ElevenLabs Voice');
+  if (pinecone_configured) availableServices.push('Pinecone Vector DB');
+  if (redis_configured) availableServices.push('Redis Cache');
+
+  // Determine active service
+  const activeService = gemini_configured ? 'Gemini AI' : 
+                       elevenlabs_configured ? 'ElevenLabs Voice' : 
+                       'Development Fallback';
 
   res.status(200).json({
     status: "healthy",
@@ -186,6 +199,9 @@ app.get("/", (req, res) => {
     version: process.env.npm_package_version || "1.0.0",
     timestamp: new Date().toISOString(),
     environment: NODE_ENV,
+    phase: "3 - Backend Integration",
+    availableServices,
+    activeService,
     integrations: {
       gemini: gemini_configured ? "configured" : "not configured",
       elevenlabs: elevenlabs_configured ? "configured" : "not configured",
@@ -249,7 +265,7 @@ app.get(['/status', '/api/status'], async (req, res) => {
 // Blueprint to Canvas generation endpoint
 app.post(['/generateCanvas', '/canvas/generate', '/api/canvas/generate'], async (req, res) => {
   try {
-    console.log('🎨 Canvas generation request received');
+    console.log('🎨 Canvas generation request received by Orchestrator');
     const blueprint = req.body.blueprint;
     
     try {
@@ -298,7 +314,7 @@ app.post(['/generateCanvas', '/canvas/generate', '/api/canvas/generate'], async 
 // Execute workflow endpoint
 app.post(['/executeFlow', '/workflow/execute', '/api/workflow/execute'], async (req, res) => {
   try {
-    console.log('🔄 Workflow execution request received');
+    console.log('🔄 Workflow execution request received by Orchestrator');
     const { flowId, nodes, edges, context = {} }: {
       flowId?: string;
       nodes: WorkflowNode[];
@@ -649,7 +665,7 @@ app.get('/execution/:executionId', async (req, res) => {
 // Blueprint generation endpoint
 app.post(['/generateBlueprint', '/wizard/generate-blueprint', '/api/wizard/generate-blueprint'], async (req, res) => {
   try {
-    console.log('🧠 Blueprint generation request received');
+    console.log('🧠 Blueprint generation request received by Orchestrator');
     const { user_input } = req.body;
     
     if (!user_input) {
@@ -662,13 +678,48 @@ app.post(['/generateBlueprint', '/wizard/generate-blueprint', '/api/wizard/gener
     console.log(`Generating blueprint for: ${user_input.substring(0, 50)}...`);
     
     try {
-      // Generate blueprint
-      const blueprint = await blueprintService.generateBlueprint(user_input);
+      // First try to use agent service for better blueprint generation
+      try {
+        console.log('🧪 Attempting to use agent service for blueprint generation');
+        const agentServiceUrl = process.env.AGENT_SERVICE_URL || 'http://localhost:8001';
+        
+        // Try multiple endpoints that might work
+        const endpoints = [
+          '/generate-blueprint',
+          '/v1/generate-blueprint',
+          '/api/generate-blueprint'
+        ];
+        
+        for (const endpoint of endpoints) {
+          try {
+            console.log(`🔄 Trying agent service endpoint: ${agentServiceUrl}${endpoint}`);
+            
+            const response = await axios.post(`${agentServiceUrl}${endpoint}`, {
+              user_input
+            }, {
+              timeout: 10000,
+              headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (response.data) {
+              console.log('✅ Blueprint generated via agent service:', response.data.id);
+              return res.json(response.data);
+            }
+          } catch (endpointError) {
+            console.warn(`⚠️ Agent service endpoint ${endpoint} failed:`, endpointError.message);
+          }
+        }
+        
+        throw new Error('All agent service endpoints failed');
+      } catch (agentError) {
+        console.warn('⚠️ Agent service unavailable, falling back to blueprint service:', agentError.message);
+        
+        // Fall back to local blueprint service
+        const blueprint = await blueprintService.generateBlueprint(user_input);
+        console.log(`✅ Blueprint generated via blueprint service:`, blueprint.id);
+        return res.json(blueprint);
+      }
       
-      console.log(`✅ Blueprint generated: ${blueprint.id}`);
-      
-      // Return the blueprint
-      return res.json(blueprint);
     } catch (error: any) {
       console.error('❌ Error generating blueprint:', error);
       return res.status(500).json({ 
@@ -838,7 +889,7 @@ function startServer(port: number) {
 startServer(PORT);
 
 process.on('SIGINT', async () => {
-  console.log('🛑 Orchestrator shutting down...');
+  console.log('🛑 GenesisOS Orchestrator shutting down...');
   
   // Close Redis client if it exists
   if (redisClient) {
@@ -847,6 +898,6 @@ process.on('SIGINT', async () => {
     console.log('✅ Redis client closed');
   }
   
-  console.log('✅ GenesisOS Orchestrator shutdown complete');
+  console.log('✅ GenesisOS Orchestrator shutdown complete - goodbye!');
   process.exit(0);
 });

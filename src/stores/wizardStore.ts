@@ -99,26 +99,63 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
     const { user_input } = get();
     
     if (!user_input.trim()) {
-      get().addError('Please describe what you want to achieve');
+      get().addError('Please describe your business goal so we can generate an AI blueprint');
       return;
     }
 
     if (user_input.trim().length < 10) {
-      get().addError('Please provide more details about your goal (at least 10 characters)');
+      get().addError('Please provide more details about your business goal (at least 10 characters)');
       return;
     }
 
     if (user_input.length > 2000) {
-      get().addError('Please keep your description under 2000 characters for optimal AI processing');
+      get().addError('Please keep your description under 2000 characters for optimal AI understanding');
       return;
     }
 
     try {
       set({ isLoading: true, errors: [] });
-      console.log('🤖 Starting enhanced AI blueprint generation with Gemini 1.5 Pro...');
+      console.log('🤖 Starting enhanced AI blueprint generation...');
+      
+      // Show helpful progress messaging to user
+      const progressMessages = [
+        'Analyzing your business goal...',
+        'Identifying optimal agent architecture...',
+        'Designing intelligent workflows...',
+        'Optimizing for efficiency and reliability...',
+        'Finalizing blueprint structure...'
+      ];
+      
+      // Display progress messages on a timer
+      let messageIndex = 0;
+      const progressInterval = setInterval(() => {
+        if (messageIndex < progressMessages.length) {
+          console.log(`🤖 ${progressMessages[messageIndex]}`);
+          messageIndex++;
+        } else {
+          clearInterval(progressInterval);
+        }
+      }, 2000);
       
       // Call blueprint service with direct Gemini integration
-      const blueprint = await blueprintService.generateBlueprint(user_input.trim());
+      let blueprint;
+      try {
+        blueprint = await blueprintService.generateBlueprint(user_input.trim());
+        
+        // Validate blueprint structure
+        if (!blueprint || !blueprint.suggested_structure || 
+            !blueprint.suggested_structure.agents || 
+            !blueprint.suggested_structure.workflows) {
+          console.error('❌ Blueprint structure validation failed:', blueprint);
+          throw new Error('Invalid blueprint structure');
+        }
+      } catch (blueprintError) {
+        console.error('❌ Blueprint generation failed, trying API methods fallback:', blueprintError);
+        blueprint = await apiMethods.generateBlueprint(user_input.trim());
+      }
+      
+      // Clean up progress interval
+      clearInterval(progressInterval);
       
       get().setBlueprint(blueprint);
       get().setStep('blueprint');
@@ -134,7 +171,7 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
       set({ isLoading: false });
       
     } catch (error: any) {
-      console.error('❌ Phase 3: Blueprint generation failed:', error);
+      console.error('❌ Phase 3: Blueprint generation failed completely:', error);
       
       // Enhanced error handling with helpful messages
       let errorMessage = 'Failed to generate blueprint. Please try again.';
@@ -156,6 +193,21 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
         } else {
           errorMessage = error.message;
         }
+      }
+      
+      // Check if there's a saved blueprint we can use as fallback
+      try {
+        const savedBlueprint = localStorage.getItem('last_blueprint');
+        if (savedBlueprint) {
+          const parsed = JSON.parse(savedBlueprint);
+          console.log('✅ Using saved blueprint as fallback:', parsed.id);
+          get().setBlueprint(parsed);
+          get().setStep('blueprint');
+          set({ isLoading: false });
+          return;
+        }
+      } catch (localStorageError) {
+        console.warn('Failed to retrieve saved blueprint:', localStorageError);
       }
       
       get().addError(errorMessage);
