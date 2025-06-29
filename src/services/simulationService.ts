@@ -402,7 +402,8 @@ function generateMockSimulationResults(guildId: string, config: any): Simulation
           `Tool integrations performed with ${(Math.random() * 0.1 + 0.9).toFixed(2)}% reliability across all services`,
           `Inter-agent coordination optimized workflow execution by ${Math.floor(Math.random() * 30) + 20}% through intelligent routing`,
           `Guild ready for production deployment with predicted ${(Math.random() * 0.1 + 0.9).toFixed(2)}% uptime and automatic scaling`
-        ];
+        ]
+  ];
   
   // Generate recommendations based on configuration
   const recommendations = [
