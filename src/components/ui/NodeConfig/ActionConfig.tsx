@@ -309,15 +309,15 @@ export function ActionConfig({ data, onUpdate, onDelete, nodeId, onClose }: Acti
                     ) : (
                       <span className="text-green-400">API Test Successful (Status: {formData.testResult.status})</span>
                     )}
-                  </div>
+                    <span className="text-xs text-gray-400">Method</span>
                   
                   <div className="text-xs text-white/70 max-h-32 overflow-y-auto">
                     {formData.testResult.error ? (
                       formData.testResult.message
                     ) : (
-                      <pre className="whitespace-pre-wrap overflow-x-auto">
+                    <span className="text-xs text-gray-400">URL</span>
                         {JSON.stringify(formData.testResult.data, null, 2)}
-                      </pre>
+                      {config?.url || 'https://api.example.com/endpoint'}
                     )}
                   </div>
                 </div>
@@ -326,7 +326,7 @@ export function ActionConfig({ data, onUpdate, onDelete, nodeId, onClose }: Acti
           )}
 
           {/* Database Configuration */}
-          {formData.actionType === 'database' && (
+                    <span className="text-xs text-gray-400">Method</span>
             <div className="space-y-3">
               <div className="space-y-2">
                 <label className="text-white text-sm">Operation</label>

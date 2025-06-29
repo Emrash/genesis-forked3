@@ -30,6 +30,13 @@ export const DeploymentStep: React.FC = () => {
   const handleDeploymentSuccess = (deploymentId: string) => {
     console.log('✅ Guild deployed successfully:', deploymentId);
     // You could store the deploymentId in the wizardStore if needed
+    
+    // Store the deployment ID in localStorage for persistence
+    try {
+      localStorage.setItem('last_deployment_id', deploymentId);
+    } catch (e) {
+      console.warn('Failed to save deployment ID to localStorage:', e);
+    }
   };
 
   // Handle deployment error
@@ -142,6 +149,11 @@ export const DeploymentStep: React.FC = () => {
                     All agents are active with memory systems enabled. They can process voice commands, 
                     maintain conversation context, and execute workflows autonomously. 
                     Performance metrics show {simulationResults?.execution_time}s average response time.
+                    {credentials.slack_webhook_url && (
+                      <span className="block mt-2">
+                        ✅ <strong>Slack integration is active!</strong> Your agents can send messages to your Slack workspace.
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>

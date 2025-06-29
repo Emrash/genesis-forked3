@@ -11,6 +11,32 @@ export const simulationService = {
   runSimulation: async (guildId: string, config: any): Promise<any> => {
     console.log(`🧪 Running simulation for guild: ${guildId}`);
     console.log('Simulation config:', config);
+
+    // Check if Slack integration is enabled
+    const slackEnabled = config.parameters?.slackEnabled || false;
+    const slackWebhookUrl = config.parameters?.slackWebhookUrl || '';
+    
+    // If Slack is enabled and we have a webhook URL, send a test message
+    if (slackEnabled && slackWebhookUrl) {
+      try {
+        console.log('🔄 Sending test message to Slack webhook');
+        
+        // Send a test message to Slack
+        await fetch(slackWebhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            text: `🧪 *GenesisOS Simulation Started*\n\nGuild: ${guildId}\nTime: ${new Date().toLocaleString()}\nModel: ${config.parameters?.ai_model || 'gemini-flash'}\nType: ${config.test_scenarios?.[0] || 'comprehensive'}`
+          })
+        });
+        
+        console.log('✅ Test message sent to Slack successfully');
+      } catch (error) {
+        console.error('Failed to send test message to Slack:', error);
+      }
+    }
     
     try {
       // Try to use the orchestrator API
@@ -22,6 +48,26 @@ export const simulationService = {
       return response.data;
     } catch (error) {
       console.error('Failed to run simulation via API, using fallback:', error);
+      
+      // If Slack is enabled, send a fallback message about the simulation results
+      if (slackEnabled && slackWebhookUrl) {
+        try {
+          await fetch(slackWebhookUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              text: `✅ *GenesisOS Simulation Completed*\n\nGuild: ${guildId}\nTime: ${new Date().toLocaleString()}\nModel: ${config.parameters?.ai_model || 'gemini-flash'}\nResult: Simulation completed successfully with ${config.agents?.length || 0} agents\n\n_This is a simulated result as the orchestrator service is unavailable._`
+            })
+          });
+          
+          console.log('✅ Simulation results sent to Slack successfully');
+        } catch (slackError) {
+          console.error('Failed to send simulation results to Slack:', slackError);
+        }
+      }
+      
       return generateMockSimulationResults(guildId, config);
     }
   },
@@ -142,6 +188,10 @@ function generateMockSimulationResults(guildId: string, config: any): any {
   // Create a unique simulation ID
   const simulationId = `sim-${uuid()}`;
   
+  // Check if Slack integration is enabled
+  const slackEnabled = config.parameters?.slackEnabled || false;
+  const slackWebhookUrl = config.parameters?.slackWebhookUrl || '';
+  
   // Record start time
   const startTime = Date.now();
   
@@ -196,6 +246,27 @@ function generateMockSimulationResults(guildId: string, config: any): any {
     ai_model: aiModel,
     token_usage: Math.floor(Math.random() * 10000) + 5000
   };
+  
+  // If Slack is enabled, send a message with the simulation results
+  if (slackEnabled && slackWebhookUrl) {
+    try {
+      fetch(slackWebhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          text: `✅ *GenesisOS Simulation Results*\n\nGuild: ${guildId}\nTime: ${new Date().toLocaleString()}\nModel: ${aiModel}\nExecution Time: ${executionTime.toFixed(2)}s\nSuccess Rate: ${workflowMetrics.success_rate}%\n\n*Insights:*\n${insights.map(insight => `• ${insight}`).join('\n')}`
+        })
+      }).then(() => {
+        console.log('✅ Simulation results sent to Slack successfully');
+      }).catch(error => {
+        console.error('Failed to send simulation results to Slack:', error);
+      });
+    } catch (error) {
+      console.error('Failed to send simulation results to Slack:', error);
+    }
+  }
   
   // Create the full simulation result
   const result = {
