@@ -20,6 +20,12 @@ export const CredentialsStep: React.FC = () => {
   const [testingApi, setTestingApi] = useState<Record<string, boolean>>({});
   const [testResults, setTestResults] = useState<Record<string, any>>({});
   
+  // Early check for required props
+  const hasValidBlueprint = blueprint && 
+    blueprint.suggested_structure && 
+    blueprint.suggested_structure.agents && 
+    Array.isArray(blueprint.suggested_structure.agents);
+  
   // Generate required credentials based on blueprint
   const getRequiredCredentials = () => {
     if (!blueprint || !blueprint.suggested_structure) return [];
@@ -260,6 +266,7 @@ export const CredentialsStep: React.FC = () => {
   };
   
   const requiredCredentials = blueprint ? getRequiredCredentials() : [];
+  const hasCredentials = Array.isArray(requiredCredentials) && requiredCredentials.length > 0;
 
   const handleCredentialChange = (key: string, value: string) => {
     setLocalCredentials(prev => ({
@@ -489,13 +496,16 @@ export const CredentialsStep: React.FC = () => {
     }
   };
 
-  const allCredentialsValid = Array.isArray(requiredCredentials) && requiredCredentials.length > 0 && requiredCredentials.every(
-    cred => localCredentials[cred.key] && validationStatus[cred.key]
-  );
+  const allCredentialsValid = hasCredentials && 
+    requiredCredentials.every(cred => 
+      cred && cred.key && 
+      localCredentials[cred.key] && 
+      validationStatus[cred.key]
+    );
 
   return (
     <div className="container mx-auto px-4 py-12">
-      {!blueprint ? (
+      {!hasValidBlueprint ? (
         <div className="text-center p-8">
           <div className="w-16 h-16 bg-orange-100 rounded-full mx-auto flex items-center justify-center mb-4">
             <AlertTriangle className="w-8 h-8 text-orange-600" />
@@ -523,10 +533,12 @@ export const CredentialsStep: React.FC = () => {
         </div>
 
         <div className="space-y-6">
-          {Array.isArray(requiredCredentials) && requiredCredentials.map((credential) => {
-            const key = credential.key;
+          {hasCredentials ? requiredCredentials.map((credential, index) => {
+            if (!credential || typeof credential !== 'object') return null;
+            
+            const key = credential.key || `unknown-key-${index}`;
             return (
-              <GlassCard key={key} variant="medium" className="p-6">
+              <GlassCard key={key || index} variant="medium" className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center">
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center mr-3">
@@ -534,11 +546,11 @@ export const CredentialsStep: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="text-white font-semibold">{credential.name}</h3>
-                      <p className="text-gray-300 text-sm">{credential.description}</p>
-                      <div className="text-xs text-blue-300 mt-1">For: {credential.tool}</div>
+                      <p className="text-gray-300 text-sm">{credential.description || 'API access'}</p>
+                      <div className="text-xs text-blue-300 mt-1">For: {credential.tool || 'integration'}</div>
                     </div>
                   </div>
-                  {validationStatus[key] && (
+                  {key && validationStatus[key] && (
                     <div className="bg-green-500/20 rounded-full p-1">
                       <CheckCircle2 className="w-5 h-5 text-green-400" />
                     </div>
@@ -546,8 +558,9 @@ export const CredentialsStep: React.FC = () => {
                 </div>
 
                 <div className="mb-4 relative">
+                 {key && (
                   <input
-                    value={localCredentials[key] || ''}
+                    value={localCredentials[key] ?? ''}
                     onChange={(e) => handleCredentialChange(key, e.target.value)}
                     onBlur={(e) => validateCredential(key, e.target.value)}
                     placeholder={credential.placeholder}
@@ -560,17 +573,18 @@ export const CredentialsStep: React.FC = () => {
                       onClick={() => togglePasswordVisibility(key)}
                       className="text-gray-400 hover:text-gray-200 transition-colors"
                     >
-                      {showPassword[key] ? 
+                      {key && showPassword[key] ? 
                         <EyeOff className="w-5 h-5" /> : 
                         <Eye className="w-5 h-5" />}
                     </button>
                   </div>
+                 )}
                 </div>
 
-                {credential.key === 'elevenlabs_voice_id' && (
+                {credential.key && credential.key === 'elevenlabs_voice_id' && (
                   <div className="mt-4">
                     <VoiceSelector
-                      selectedVoiceId={localCredentials[credential.key] || ''}
+                      selectedVoiceId={localCredentials[credential.key] ?? ''}
                       onSelect={(voiceId) => {
                         handleCredentialChange(credential.key, voiceId);
                         validateCredential(credential.key, voiceId);
@@ -587,9 +601,13 @@ export const CredentialsStep: React.FC = () => {
                       Setup Instructions
                     </h4>
                     <ol className="list-decimal list-inside space-y-2 text-sm text-gray-300">
-                      {credential.instructions.map((instruction: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined, index: React.Key | null | undefined) => (
-                        <li key={index}>{instruction}</li>
-                      ))}
+                      {Array.isArray(credential.instructions) ? 
+                        credential.instructions.map((instruction, index) => (
+                          <li key={index}>{instruction}</li>
+                        ))
+                       : 
+                        <li>Setup instructions unavailable</li>
+                      }
                     </ol>
                   </div>
 
@@ -653,36 +671,44 @@ export const CredentialsStep: React.FC = () => {
                   {credential.key === 'elevenlabs_api_key' && testResults[credential.key]?.success && (
                     <div className="mt-3 bg-green-900/20 border border-green-700/30 p-3 rounded-lg">
                       <div className="flex items-center mb-2">
-                        <div className="w-5 h-5 bg-green-900/40 rounded-full flex items-center justify-center mr-2">
-                          <Volume2 className="w-3 h-3 text-green-400" />
-                        </div>
-                        <span className="text-green-400 text-sm font-medium">Test Voice Sample</span>
-                      </div>
+                {credential.key && credential.key === 'elevenlabs_api_key' && 
+                 testResults[credential.key]?.success && (
+                   <div className="mt-3 bg-green-900/20 border border-green-700/30 p-3 rounded-lg">
+                     <div className="flex items-center mb-2">
+                       <div className="w-5 h-5 bg-green-900/40 rounded-full flex items-center justify-center mr-2">
+                         <Volume2 className="w-3 h-3 text-green-400" />
+                       </div>
+                       <span className="text-green-400 text-sm font-medium">Test Voice Sample</span>
+                     </div>
+                     <HolographicButton
+                       variant="outline"
+                       size="sm"
+                       className="w-full"
+                       onClick={async () => {
+                         const voiceId = localCredentials['elevenlabs_voice_id'] || '';
+                         const audioUrl = await voiceService.synthesizeSpeech(
+                           "Hello, I'm your AI assistant with ElevenLabs voice. How can I help you today?",
+                           voiceId
+                         );
+                         
+                         const audio = new Audio(audioUrl);
+                         audio.play();
+                       }}
+                     >
+                       Play Test Voice
+                     </HolographicButton>
                       <HolographicButton
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={async () => {
-                          const audioUrl = await voiceService.synthesizeSpeech(
-                            "Hello, I'm your AI assistant with ElevenLabs voice. How can I help you today?",
-                            localCredentials['elevenlabs_voice_id']
-                          );
-                          
-                          const audio = new Audio(audioUrl);
-                          audio.play();
-                        }}
-                      >
-                        Play Test Voice
-                      </HolographicButton>
-                    </div>
-                  )}
-                  
-                  {/* Test Results */}
-                  {testResults[key] && (
+                   )}
+                        </button>
+                      </div>
+                {key && testResults[key] && (
+                  <div className={`mt-3 rounded-lg p-3 border ${
+                    testResults[key]?.success 
+                      </pre>
                     <div className={`mt-3 rounded-lg p-3 border ${
                       testResults[key].success 
                         ? 'bg-green-900/20 border-green-700/30' 
-                        : 'bg-red-900/20 border-red-700/30'
+                      {testResults[key]?.success ? (
                     }`}>
                       <div className="text-xs mb-2 font-medium">
                         {testResults[key].success ? (
@@ -690,17 +716,24 @@ export const CredentialsStep: React.FC = () => {
                         ) : (
                           <span className="text-red-400">✗ Credential Test Failed</span>
                         )}
-                      </div>
+                      {testResults[key]?.message || 'No details available'}
                       
                       <div className="text-xs text-white/70">
                         {testResults[key].message}
                       </div>
                     </div>
-                  )}
-                </div>
-              </GlassCard>
-            );
-          })}
+          }) : (
+            <div className="text-center p-6 bg-white/5 rounded-lg border border-white/10">
+              <div className="mb-4">
+                <AlertCircle className="w-10 h-10 text-blue-400 mx-auto" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-3">No Credentials Required</h3>
+              <p className="text-gray-300 mb-6">
+                Your blueprint doesn't require any specific API credentials.
+                You can continue to the next step.
+              </p>
+            </div>
+          )}
         </div>
 
         <motion.div
@@ -713,6 +746,7 @@ export const CredentialsStep: React.FC = () => {
             onClick={handleContinue}
             disabled={!allCredentialsValid}
             size="lg"
+            glow={allCredentialsValid}
             glow
           >
             Test in Simulation Lab
@@ -722,11 +756,11 @@ export const CredentialsStep: React.FC = () => {
 
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          animate={{ opacity: hasCredentials ? 1 : 0 }}
           transition={{ delay: 1 }}
           className="mt-4 text-center"
         >
-          {!allCredentialsValid && (
+          {hasCredentials && !allCredentialsValid && (
             <p className="text-center text-sm text-gray-300 mt-4">
               Please provide all required credentials to continue
             </p>
