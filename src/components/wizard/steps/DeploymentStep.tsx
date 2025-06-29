@@ -207,11 +207,13 @@ export const DeploymentStep: React.FC = () => {
             )}
             
             {activeView === 'analytics' && deploymentId && (
+              <div>
               <ChannelMonitor
                 guildId={deploymentId}
                 channelId={null}
               />
-            )}
+            </div>
+          )}
 
             <div className="flex justify-center space-x-4">
               <HolographicButton 
@@ -234,6 +236,6 @@ export const DeploymentStep: React.FC = () => {
           </div>
         ) : null}
       </div>
-    </div>
+    </GlassCard>
   );
 };
