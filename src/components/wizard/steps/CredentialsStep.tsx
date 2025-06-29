@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Key, ArrowRight, ExternalLink, CheckCircle2, Eye, EyeOff, Code, RefreshCw, Volume2 } from 'lucide-react';
+import { Key, ArrowRight, ExternalLink, CheckCircle2, Eye, EyeOff, Code, RefreshCw, Volume2, AlertTriangle } from 'lucide-react';
 import { useWizardStore } from '../../../stores/wizardStore';
 import { GlassCard } from '../../ui/GlassCard';
 import { HolographicButton } from '../../ui/HolographicButton';
@@ -523,256 +523,240 @@ export const CredentialsStep: React.FC = () => {
         </div>
       ) : (
         <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-4">
-            Connect Your Tools
-          </h1>
-          <p className="text-lg text-gray-300">
-            Provide API keys and credentials for the tools your Guild will use
-          </p>
-        </div>
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-white mb-4">
+              Connect Your Tools
+            </h1>
+            <p className="text-lg text-gray-300">
+              Provide API keys and credentials for the tools your Guild will use
+            </p>
+          </div>
 
-        <div className="space-y-6">
-          {hasCredentials ? requiredCredentials.map((credential, index) => {
-            if (!credential || typeof credential !== 'object') return null;
-            
-            const key = credential.key || `unknown-key-${index}`;
-            return (
-              <GlassCard key={key || index} variant="medium" className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center mr-3">
-                      <Key className="w-5 h-5 text-white" />
+          <div className="space-y-6">
+            {hasCredentials ? requiredCredentials.map((credential, index) => {
+              if (!credential || typeof credential !== 'object') return null;
+              
+              const key = credential.key || `unknown-key-${index}`;
+              return (
+                <GlassCard key={key || index} variant="medium" className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center mr-3">
+                        <Key className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold">{credential.name}</h3>
+                        <p className="text-gray-300 text-sm">{credential.description || 'API access'}</p>
+                        <div className="text-xs text-blue-300 mt-1">For: {credential.tool || 'integration'}</div>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-white font-semibold">{credential.name}</h3>
-                      <p className="text-gray-300 text-sm">{credential.description || 'API access'}</p>
-                      <div className="text-xs text-blue-300 mt-1">For: {credential.tool || 'integration'}</div>
-                    </div>
+                    {key && validationStatus[key] && (
+                      <div className="bg-green-500/20 rounded-full p-1">
+                        <CheckCircle2 className="w-5 h-5 text-green-400" />
+                      </div>
+                    )}
                   </div>
-                  {key && validationStatus[key] && (
-                    <div className="bg-green-500/20 rounded-full p-1">
-                      <CheckCircle2 className="w-5 h-5 text-green-400" />
-                    </div>
-                  )}
-                </div>
 
-                <div className="mb-4 relative">
-                 {key && (
-                  <>
-                  <input
-                    value={localCredentials[key] ?? ''}
-                    onChange={(e) => handleCredentialChange(key, e.target.value)}
-                    onBlur={(e) => validateCredential(key, e.target.value)}
-                    placeholder={credential.placeholder}
-                    type={showPassword[key] ? "text" : "password"}
-                    className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 pr-10"
-                  />
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                    <button 
-                      type="button"
-                      onClick={() => togglePasswordVisibility(key)}
-                      className="text-gray-400 hover:text-gray-200 transition-colors"
-                    >
-                      {key && showPassword[key] ? 
-                        <EyeOff className="w-5 h-5" /> : 
-                        <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                  </>
-                 )}
-                </div>
-
-                {credential.key && credential.key === 'elevenlabs_voice_id' && (
-                  <div className="mt-4">
-                    <VoiceSelector
-                      selectedVoiceId={localCredentials[credential.key] ?? ''}
-                      onSelect={(voiceId) => {
-                        handleCredentialChange(credential.key, voiceId);
-                        validateCredential(credential.key, voiceId);
-                      }}
-                      label="Select Voice"
+                  <div className="mb-4 relative">
+                  {key && (
+                    <>
+                    <input
+                      value={localCredentials[key] ?? ''}
+                      onChange={(e) => handleCredentialChange(key, e.target.value)}
+                      onBlur={(e) => validateCredential(key, e.target.value)}
+                      placeholder={credential.placeholder}
+                      type={showPassword[key] ? "text" : "password"}
+                      className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 pr-10"
                     />
-                  </div>
-                )}
-
-                <div className="space-y-4">
-                  <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-                    <h4 className="font-medium text-white mb-3 flex items-center">
-                      <ExternalLink className="w-4 h-4 mr-2 text-blue-400" />
-                      Setup Instructions
-                    </h4>
-                    <ol className="list-decimal list-inside space-y-2 text-sm text-gray-300">
-                      {Array.isArray(credential.instructions) ? 
-                        credential.instructions.map((instruction, index) => (
-                          <li key={index}>{instruction}</li>
-                        ))
-                       : 
-                        <li>Setup instructions unavailable</li>
-                      }
-                    </ol>
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                      <button 
+                        type="button"
+                        onClick={() => togglePasswordVisibility(key)}
+                        className="text-gray-400 hover:text-gray-200 transition-colors"
+                      >
+                        {key && showPassword[key] ? 
+                          <EyeOff className="w-5 h-5" /> : 
+                          <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                    </>
+                  )}
                   </div>
 
-                  <div>
-                    <button
-                      onClick={() => {
-                        toggleCurlGenerator(key);
-                        if (!curlCommands[key]) {
-                          generateCurl(credential, key);
-                        }
-                      }}
-                      className="text-sm text-blue-400 hover:text-blue-300 flex items-center mb-2"
-                    >
-                      <Code className="w-4 h-4 mr-1" />
-                      {showCurlGenerator[key] ? "Hide cURL Command" : "Show cURL Command"}
-                    </button>
-                    
-                    <button
-                      onClick={() => testCredential(credential, key)}
-                      className="text-sm text-green-400 hover:text-green-300 flex items-center"
-                      disabled={!localCredentials[key] || testingApi[key]}
-                    >
-                      {testingApi[key] ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
-                          Testing...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="w-4 h-4 mr-1" />
-                          {testResults[key] ? "Re-Test Credential" : "Test Credential"}
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  
-                  {showCurlGenerator[key] && (
-                    <div className="mt-3 bg-black/30 rounded-lg p-3 border border-white/10">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-gray-400">Test API with curl</span>
-                        <button
-                          onClick={() => generateCurl(credential, key)}
-                          className="text-xs text-blue-400 flex items-center"
-                          disabled={generatingCurl[key]}
-                        >
-                          {generatingCurl[key] ? (
-                            <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-                          ) : (
-                            <RefreshCw className="w-3 h-3 mr-1" />
-                          )}
-                          Regenerate
-                        </button>
-                      </div>
-                      <pre className="text-xs text-green-400 whitespace-pre-wrap font-mono overflow-x-auto p-2">
-                        {curlCommands[key] || 
-                         (generatingCurl[key] ? 'Generating...' : '# cURL command will appear here')}
-                      </pre>
+                  {credential.key && credential.key === 'elevenlabs_voice_id' && (
+                    <div className="mt-4">
+                      <VoiceSelector
+                        selectedVoiceId={localCredentials[credential.key] ?? ''}
+                        onSelect={(voiceId) => {
+                          handleCredentialChange(credential.key, voiceId);
+                          validateCredential(credential.key, voiceId);
+                        }}
+                        label="Select Voice"
+                      />
                     </div>
                   )}
-                  
-                  {credential.key === 'elevenlabs_api_key' && testResults[credential.key]?.success && (
-                    <div className="mt-3 bg-green-900/20 border border-green-700/30 p-3 rounded-lg">
-                      <div className="flex items-center mb-2">
-                {credential.key && credential.key === 'elevenlabs_api_key' && 
-                 testResults[credential.key]?.success && (
-                   <div className="mt-3 bg-green-900/20 border border-green-700/30 p-3 rounded-lg">
-                     <div className="flex items-center mb-2">
-                       <div className="w-5 h-5 bg-green-900/40 rounded-full flex items-center justify-center mr-2">
-                         <Volume2 className="w-3 h-3 text-green-400" />
-                       </div>
-                       <span className="text-green-400 text-sm font-medium">Test Voice Sample</span>
-                     </div>
-                     <HolographicButton
-                       variant="outline"
-                       size="sm"
-                       className="w-full"
-                       onClick={async () => {
-                         const voiceId = localCredentials['elevenlabs_voice_id'] || '';
-                         const audioUrl = await voiceService.synthesizeSpeech(
-                           "Hello, I'm your AI assistant with ElevenLabs voice. How can I help you today?",
-                           voiceId
-                         );
-                         
-                         const audio = new Audio(audioUrl);
-                         audio.play();
-                       }}
-                     >
-                       Play Test Voice
-                     </HolographicButton>
-                      <HolographicButton
-                   )}
-                        </button>
-                      </div>
-                {key && testResults[key] && (
-                  <div className={`mt-3 rounded-lg p-3 border ${
-                    testResults[key]?.success 
-                      </pre>
-                    <div className={`mt-3 rounded-lg p-3 border ${
-                      testResults[key].success 
-                        ? 'bg-green-900/20 border-green-700/30' 
-                      {testResults[key]?.success ? (
-                    }`}>
-                      <div className="text-xs mb-2 font-medium">
-                        {testResults[key].success ? (
-                          <span className="text-green-400">✓ Credential Test Successful</span>
-                        ) : (
-                          <span className="text-red-400">✗ Credential Test Failed</span>
-                        )}
-                      {testResults[key]?.message || 'No details available'}
-                      
-                      <div className="text-xs text-white/70">
-                        {testResults[key].message}
-                      </div>
+
+                  <div className="space-y-4">
+                    <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                      <h4 className="font-medium text-white mb-3 flex items-center">
+                        <ExternalLink className="w-4 h-4 mr-2 text-blue-400" />
+                        Setup Instructions
+                      </h4>
+                      <ol className="list-decimal list-inside space-y-2 text-sm text-gray-300">
+                        {Array.isArray(credential.instructions) ? 
+                          credential.instructions.map((instruction: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined, index: React.Key | null | undefined) => (
+                            <li key={index}>{instruction}</li>
+                          ))
+                        : 
+                          <li>Setup instructions unavailable</li>
+                        }
+                      </ol>
                     </div>
-          }) : (
-            <div className="text-center p-6 bg-white/5 rounded-lg border border-white/10">
-              <div className="mb-4">
-                <AlertCircle className="w-10 h-10 text-blue-400 mx-auto" />
+
+                    <div>
+                      <button
+                        onClick={() => {
+                          toggleCurlGenerator(key);
+                          if (!curlCommands[key]) {
+                            generateCurl(credential, key);
+                          }
+                        }}
+                        className="text-sm text-blue-400 hover:text-blue-300 flex items-center mb-2"
+                      >
+                        <Code className="w-4 h-4 mr-1" />
+                        {showCurlGenerator[key] ? "Hide cURL Command" : "Show cURL Command"}
+                      </button>
+                      
+                      <button
+                        onClick={() => testCredential(credential, key)}
+                        className="text-sm text-green-400 hover:text-green-300 flex items-center"
+                        disabled={!localCredentials[key] || testingApi[key]}
+                      >
+                        {testingApi[key] ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                            Testing...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-4 h-4 mr-1" />
+                            {testResults[key] ? "Re-Test Credential" : "Test Credential"}
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    
+                    {showCurlGenerator[key] && (
+                      <div className="mt-3 bg-black/30 rounded-lg p-3 border border-white/10">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs text-gray-400">Test API with curl</span>
+                          <button
+                            onClick={() => generateCurl(credential, key)}
+                            className="text-xs text-blue-400 flex items-center"
+                            disabled={generatingCurl[key]}
+                          >
+                            {generatingCurl[key] ? (
+                              <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-3 h-3 mr-1" />
+                            )}
+                            Regenerate
+                          </button>
+                        </div>
+                        <pre className="text-xs text-green-400 whitespace-pre-wrap font-mono overflow-x-auto p-2">
+                          {curlCommands[key] || 
+                          (generatingCurl[key] ? 'Generating...' : '# cURL command will appear here')}
+                        </pre>
+                      </div>
+                    )}
+                    
+          {credential.key === 'elevenlabs_api_key' && testResults[credential.key]?.success && (
+            <div className="mt-3 bg-green-900/20 border border-green-700/30 p-3 rounded-lg">
+              <div className="flex items-center mb-2">
+                <div className="w-5 h-5 bg-green-900/40 rounded-full flex items-center justify-center mr-2">
+                  <Volume2 className="w-3 h-3 text-green-400" />
+                </div>
+                <span className="text-green-400 text-sm font-medium">Test Voice Sample</span>
               </div>
-              <h3 className="text-xl font-semibold text-white mb-3">No Credentials Required</h3>
-              <p className="text-gray-300 mb-6">
-                Your blueprint doesn't require any specific API credentials.
-                You can continue to the next step.
-              </p>
+              <HolographicButton
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={async () => {
+                  const voiceId = localCredentials['elevenlabs_voice_id'] || '';
+                  const audioUrl = await voiceService.synthesizeSpeech(
+                    "Hello, I'm your AI assistant with ElevenLabs voice. How can I help you today?",
+                    voiceId
+                  );
+                  const audio = new Audio(audioUrl);
+                  audio.play();
+                }}
+              >
+                Play Test Voice
+              </HolographicButton>
             </div>
           )}
-        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.8 }}
-          className="mt-8 flex justify-center"
-        >
-          <HolographicButton
-            onClick={handleContinue}
-            disabled={!allCredentialsValid}
-            size="lg"
-            glow={allCredentialsValid}
-            glow
-          >
-            Test in Simulation Lab
-            <ArrowRight className="w-5 h-5 ml-2" />
-          </HolographicButton>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: hasCredentials ? 1 : 0 }}
-          transition={{ delay: 1 }}
-          className="mt-4 text-center"
-        >
-          {hasCredentials && !allCredentialsValid && (
-            <p className="text-center text-sm text-gray-300 mt-4">
-              Please provide all required credentials to continue
-            </p>
+          {key && testResults[key] && (
+            <div
+              className={`mt-3 rounded-lg p-3 border ${
+                testResults[key].success
+                  ? 'bg-green-900/20 border-green-700/30'
+                  : 'bg-red-900/20 border-red-700/30'
+              }`}
+            >
+              <div className="text-xs mb-2 font-medium">
+                {testResults[key].success ? (
+                  <span className="text-green-400">✓ Credential Test Successful</span>
+                ) : (
+                  <span className="text-red-400">✗ Credential Test Failed</span>
+                )}
+              </div>
+              <div className="text-xs text-white/70">
+                {testResults[key]?.message || 'No details available'}
+              </div>
+            </div>
           )}
-          <div className="mt-6 text-gray-400 text-xs">
-            <p>Your API keys and credentials are encrypted and stored securely.</p>
-            <p className="mt-2">For testing, you can use placeholder values.</p>
+                </div>
+              </GlassCard>
+            );
+            }) : null}
           </div>
-        </motion.div>
-      </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.8 }}
+            className="mt-8 flex justify-center"
+          >
+            <HolographicButton
+              onClick={handleContinue}
+              disabled={!allCredentialsValid}
+              size="lg"
+              glow={allCredentialsValid}
+            >
+              Test in Simulation Lab
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </HolographicButton>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: hasCredentials ? 1 : 0 }}
+            transition={{ delay: 1 }}
+            className="mt-4 text-center"
+          >
+            {hasCredentials && !allCredentialsValid && (
+              <p className="text-center text-sm text-gray-300 mt-4">
+                Please provide all required credentials to continue
+              </p>
+            )}
+            <div className="mt-6 text-gray-400 text-xs">
+              <p>Your API keys and credentials are encrypted and stored securely.</p>
+              <p className="mt-2">For testing, you can use placeholder values.</p>
+            </div>
+          </motion.div>
+        </div>
       )}
     </div>
   );
