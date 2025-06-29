@@ -137,8 +137,14 @@ export const SimulationStep: React.FC = () => {
           guildId={blueprint?.suggested_structure.guild_name || 'test-guild'}
           agents={blueprint?.suggested_structure.agents || []}
           onResults={(results) => {
-            console.log('✅ Simulation completed:', results);
+            console.log('✅ Simulation completed successfully:', results?.id);
             runSimulation();
+            // Store results in local storage as a backup
+            try {
+              localStorage.setItem('last_simulation_results', JSON.stringify(results));
+            } catch (error) {
+              console.warn('Failed to save simulation results to localStorage:', error);
+            }
           }}
         />
 
