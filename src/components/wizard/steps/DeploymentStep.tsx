@@ -236,6 +236,6 @@ export const DeploymentStep: React.FC = () => {
           </div>
         ) : null}
       </div>
-    </GlassCard>
+    </div>
   );
 };

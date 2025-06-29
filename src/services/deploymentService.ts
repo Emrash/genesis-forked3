@@ -299,22 +299,6 @@ Always think strategically, act efficiently, and communicate clearly.`,
       }
     } catch (error: any) {
       console.error('Failed to create channel deployment:', error);
-      
-      // For development, return a mock result
-      return {
-        deploymentId: `channel-${Date.now()}`,
-        guildId,
-        channels: channels.map(channel => ({
-          ...channel,
-          status: 'deployed',
-          url: `https://example.com/guild/${guildId}/channel/${channel.type}`,
-          createdAt: new Date().toISOString()
-        })),
-        status: 'deployed',
-        createdAt: new Date().toISOString()
-      };
-    } catch (error: any) {
-      console.error('Failed to create channel deployment:', error);
       throw error;
     }
   },
