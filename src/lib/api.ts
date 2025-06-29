@@ -236,7 +236,7 @@ export const apiMethods = {
 
   // Blueprint generation with AI integration
   generateBlueprint: async (userInput: string): Promise<any> => {
-    if (!hasRealBackend && isDevelopment) {
+    if (isDevelopment) {
       console.log('🤖 Phase 3: Development mode - Trying agent service first before falling back...');
 
       // First try to use agent service for proper backend generation
@@ -266,7 +266,6 @@ export const apiMethods = {
         try {
           // Now try the orchestrator service
           console.log('Attempting to connect to orchestrator at', normalizedApiBaseUrl);
-          const orchestratorResponse = await api.post('/api/wizard/generate-blueprint', { 
             user_input: userInput 
           });
           console.log('✅ Successfully generated blueprint via orchestrator!');
