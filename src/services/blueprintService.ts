@@ -4,7 +4,7 @@ import { apiMethods } from '../lib/api';
 // Gemini API configuration
 const GEMINI_API_KEY = 'AIzaSyA81SV6mvA9ShZasJgcVl4ps-YQm9DrKsc';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
-const GEMINI_MODEL = 'gemini-2.0-flash'; // Updated to use more reliable model with higher throughput
+const GEMINI_MODEL = 'gemini-1.5-flash'; // Using flash model to avoid rate limits
 
 /**
  * Service for handling blueprint operations
@@ -16,6 +16,30 @@ export const blueprintService = {
   generateBlueprint: async (userInput: string): Promise<Blueprint> => {
     try {
       console.log('🧠 Generating blueprint from user input:', userInput.substring(0, 50) + '...');
+
+      // Try to use agent service first
+      try {
+        const agentServiceUrl = import.meta.env.VITE_AGENT_SERVICE_URL || 'http://localhost:8001';
+        console.log('🤖 Attempting to generate blueprint via agent service:', agentServiceUrl);
+        
+        const response = await fetch(`${agentServiceUrl}/v1/generate-blueprint`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_input: userInput })
+        });
+        
+        if (response.ok) {
+          const blueprint = await response.json();
+          console.log('✅ Blueprint generated successfully via agent service:', blueprint.id);
+          return blueprint;
+        } else {
+          const errorText = await response.text();
+          console.warn('⚠️ Agent service response error:', response.status, errorText);
+          throw new Error(`Agent service error: ${response.status}`);
+        }
+      } catch (agentServiceError) {
+        console.warn('⚠️ Agent service unavailable, falling back to direct Gemini API:', agentServiceError);
+      }
       
       // First try to use Gemini API directly for better blueprint generation
       try {

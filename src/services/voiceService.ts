@@ -90,17 +90,42 @@ export const voiceService = {
   listVoices: async (): Promise<Voice[]> => {
     try {
       // Try to use the real API endpoint
+      console.log('🔊 Attempting to list voices via API endpoint');
       try {
         const response = await api.get('/agent/voice/voices');
         
         if (response.data.voices && response.data.voices.length > 0) {
+          console.log(`✅ Retrieved ${response.data.voices.length} voices from API`);
           return response.data.voices;
         }
       } catch (error) {
         console.warn('Failed to list voices via API, using fallback:', error);
       }
       
+      // Try agent service directly
+      try {
+        const agentServiceUrl = import.meta.env.VITE_AGENT_SERVICE_URL || 'http://localhost:8001';
+        console.log('🔊 Attempting to list voices via agent service:', agentServiceUrl);
+        
+        const response = await fetch(`${agentServiceUrl}/voice/voices`, {
+          method: 'GET'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.voices && data.voices.length > 0) {
+            console.log(`✅ Retrieved ${data.voices.length} voices from agent service`);
+            return data.voices;
+          }
+        } else {
+          console.warn('Agent service voice list error:', response.status);
+        }
+      } catch (agentServiceError) {
+        console.warn('Failed to list voices via agent service:', agentServiceError);
+      }
+      
       // Return mock voices
+      console.log('🔊 Using mock voices');
       return getMockVoices();
     } catch (error) {
       console.error('Failed to list voices:', error);
@@ -240,28 +265,28 @@ function getMockVoices(): Voice[] {
     {
       voice_id: "21m00Tcm4TlvDq8ikWAM",
       name: "Rachel",
-      preview_url: "https://example.com/voice-preview.mp3",
+      preview_url: undefined,
       category: "premade",
       description: "A friendly and professional female voice"
     },
     {
       voice_id: "AZnzlk1XvdvUeBnXmlld",
       name: "Domi",
-      preview_url: "https://example.com/voice-preview.mp3",
+      preview_url: undefined,
       category: "premade",
       description: "An authoritative and clear male voice"
     },
     {
       voice_id: "EXAVITQu4vr4xnSDxMaL",
       name: "Bella",
-      preview_url: "https://example.com/voice-preview.mp3",
+      preview_url: undefined,
       category: "premade",
       description: "A warm and engaging female voice"
     },
     {
       voice_id: "ErXwobaYiN019PkySvjV",
       name: "Antoni",
-      preview_url: "https://example.com/voice-preview.mp3",
+      preview_url: undefined,
       category: "premade",
       description: "A confident and articulate male voice"
     }
