@@ -22,7 +22,7 @@ export const CredentialsStep: React.FC = () => {
   
   // Generate required credentials based on blueprint
   const getRequiredCredentials = () => {
-    if (!blueprint) return [];
+    if (!blueprint || !blueprint.suggested_structure) return [];
     
     const neededTools = new Set<string>();
     type CredentialTemplate = {
@@ -204,7 +204,7 @@ export const CredentialsStep: React.FC = () => {
     
     // Map needed tools to credential templates
     const toolArray = Array.from(neededTools || []);
-    const requiredCredentialsList = toolArray.map(tool => {
+    const requiredCredentialsList = Array.isArray(toolArray) ? toolArray.map(tool => {
       // Find exact match or partial match
       const exactMatch = credentialTemplates[tool as keyof typeof credentialTemplates];
       if (exactMatch) {
@@ -254,7 +254,7 @@ export const CredentialsStep: React.FC = () => {
         description: `For integration with ${tool}`,
         tool
       };
-    });
+    }) : [];
     
     return requiredCredentialsList;
   };
@@ -480,17 +480,39 @@ export const CredentialsStep: React.FC = () => {
   };
 
   const handleContinue = () => {
-    setCredentials(localCredentials);
-    setStep('simulation');
+    
+    try {
+      setCredentials(localCredentials);
+      setStep('simulation');
+    } catch (error) {
+      console.error('Error during form submission:', error);
+    }
   };
 
-  const allCredentialsValid = requiredCredentials.every(
+  const allCredentialsValid = Array.isArray(requiredCredentials) && requiredCredentials.length > 0 && requiredCredentials.every(
     cred => localCredentials[cred.key] && validationStatus[cred.key]
   );
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="max-w-3xl mx-auto">
+      {!blueprint ? (
+        <div className="text-center p-8">
+          <div className="w-16 h-16 bg-orange-100 rounded-full mx-auto flex items-center justify-center mb-4">
+            <AlertTriangle className="w-8 h-8 text-orange-600" />
+          </div>
+          <h3 className="text-xl font-semibold text-white mb-4">Blueprint Required</h3>
+          <p className="text-gray-300 mb-6">
+            We need a blueprint to determine which credentials are required. Please go back and create a blueprint first.
+          </p>
+          <HolographicButton
+            onClick={() => setStep('intent')}
+            variant="primary"
+          >
+            Create Blueprint
+          </HolographicButton>
+        </div>
+      ) : (
+        <div className="max-w-3xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-4">
             Connect Your Tools
@@ -715,6 +737,7 @@ export const CredentialsStep: React.FC = () => {
           </div>
         </motion.div>
       </div>
+      )}
     </div>
   );
 };
