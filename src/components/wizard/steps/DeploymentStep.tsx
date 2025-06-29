@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
-import { CheckCircle, Sparkles, ArrowRight, Bot, Workflow, Brain, Rocket, MessageSquare, Shield } from 'lucide-react';
+import { CheckCircle, Sparkles, ArrowRight, Bot, Workflow, Brain, Rocket, MessageSquare, Shield, BarChart } from 'lucide-react';
 import { useWizardStore } from '../../../stores/wizardStore';
 import { GuildDeploymentPanel } from '../../deployment/GuildDeploymentPanel';
 import { DeploymentMonitor } from '../../deployment/DeploymentMonitor';
 import { ChannelDeployment } from '../../deployment/ChannelDeployment';
+import { ChannelMonitor } from '../../deployment/ChannelMonitor';
 import { GlassCard } from '../../ui/GlassCard';
 import { HolographicButton } from '../../ui/HolographicButton';
 import { useState } from 'react';
@@ -20,7 +21,7 @@ export const DeploymentStep: React.FC = () => {
   } = useWizardStore();
 
   const [localErrors, setLocalErrors] = useState<string[]>([]);
-  const [activeView, setActiveView] = useState<'deploy' | 'monitor' | 'channels'>('deploy');
+  const [activeView, setActiveView] = useState<'deploy' | 'monitor' | 'channels' | 'analytics'>('deploy');
   const [deploymentStatus, setDeploymentStatus] = useState<any>(null);
 
   useEffect(() => {
@@ -132,6 +133,20 @@ export const DeploymentStep: React.FC = () => {
                   Channels
                 </div>
               </button>
+              
+              <button
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeView === 'analytics' 
+                    ? 'bg-blue-500 text-white' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+                onClick={() => setActiveView('analytics')}
+              >
+                <div className="flex items-center">
+                  <BarChart className="w-4 h-4 mr-2" />
+                  Analytics
+                </div>
+              </button>
             </div>
           </div>
         )}
@@ -187,6 +202,14 @@ export const DeploymentStep: React.FC = () => {
                 onDeploymentComplete={(result) => {
                   console.log('Channel deployment complete:', result);
                   setActiveView('monitor');
+                }}
+              />
+            )}
+            
+            {activeView === 'analytics' && deploymentId && (
+              <ChannelMonitor
+                guildId={deploymentId}
+                channelId={null}
                 }}
               />
             )}

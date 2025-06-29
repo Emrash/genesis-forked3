@@ -51,8 +51,14 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
   simulationResults: undefined,
   deploymentId: undefined,
   channels: [],
+  monitoringActive: false,
+  monitoringData: null,
   
   setChannels: (channels) => set({ channels }),
+  
+  setMonitoringActive: (active) => set({ monitoringActive: active }),
+  
+  setMonitoringData: (data) => set({ monitoringData: data }),
 
   setStep: (step) => {
     console.log('🔄 Wizard step changed:', step);

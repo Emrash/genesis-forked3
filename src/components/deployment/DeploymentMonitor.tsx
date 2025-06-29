@@ -51,15 +51,17 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
   
   // Set up polling for status updates
   useEffect(() => {
-    fetchDeploymentStatus();
+    if (deploymentId) {
+      fetchDeploymentStatus();
     
-    // Only set up polling if we're still deploying
-    if (status?.status === 'deploying' || status?.status === 'provisioning' || !status) {
-      const interval = setInterval(() => {
-        fetchDeploymentStatus();
-      }, refreshInterval);
-      
-      return () => clearInterval(interval);
+      // Only set up polling if we're still deploying
+      if (status?.status === 'deploying' || status?.status === 'provisioning' || !status) {
+        const interval = setInterval(() => {
+          fetchDeploymentStatus();
+        }, refreshInterval);
+        
+        return () => clearInterval(interval);
+      }
     }
   }, [deploymentId, refreshInterval, status?.status]);
   

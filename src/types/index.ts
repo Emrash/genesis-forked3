@@ -141,6 +141,8 @@ export interface WizardState {
   credentials: Record<string, string>;
   errors: string[];
   channels: any[];
+  monitoringActive?: boolean;
+  monitoringData?: any;
 }
 
 export interface CanvasState {

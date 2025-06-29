@@ -341,15 +341,17 @@ export const GuildDeploymentPanel: React.FC<GuildDeploymentPanelProps> = ({
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 className="w-20 h-20 rounded-full bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center mx-auto mb-4"
               >
-                <CheckCircle className="w-10 h-10 text-white" />
+                <Rocket className="w-10 h-10 text-white" />
               </motion.div>
               
               <h3 className="text-2xl font-bold text-white mb-2">
-                Deployment Complete!
+                {status === "deployed" ? "Deployment Complete!" : "Deploying Your Guild..."}
               </h3>
               
               <p className="text-gray-300 mb-6">
-                Your guild has been successfully deployed and is now live
+                {status === "deployed" 
+                  ? "Your guild has been successfully deployed and is now live" 
+                  : "Setting up your AI-native infrastructure with intelligent agents"}
               </p>
               
               <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-6 inline-block">
@@ -388,15 +390,15 @@ export const GuildDeploymentPanel: React.FC<GuildDeploymentPanelProps> = ({
             <div className="grid md:grid-cols-3 gap-4 mb-8">
               <div className="bg-white/10 rounded-lg p-4 border border-white/10">
                 <Brain className="w-5 h-5 text-purple-400 mb-2" />
-                <div className="text-sm text-gray-300">AI Model</div>
+                <div className="text-sm text-gray-300">Primary AI Model</div>
                 <div className="text-white">Gemini Flash</div>
                 <div className="text-xs text-gray-400 mt-1">Default intelligence engine</div>
               </div>
               
               <div className="bg-white/10 rounded-lg p-4 border border-white/10">
                 <Cpu className="w-5 h-5 text-blue-400 mb-2" />
-                <div className="text-sm text-gray-300">Agent Status</div>
-                <div className="text-green-400">All Online</div>
+                <div className="text-sm text-gray-300">Agents Status</div>
+                <div className="text-green-400">{status === "deployed" ? "All Online" : "Initializing..."}</div>
                 <div className="text-xs text-gray-400 mt-1">
                   {blueprint.suggested_structure.agents.length} active agents
                 </div>
@@ -405,7 +407,7 @@ export const GuildDeploymentPanel: React.FC<GuildDeploymentPanelProps> = ({
               <div className="bg-white/10 rounded-lg p-4 border border-white/10">
                 <Workflow className="w-5 h-5 text-emerald-400 mb-2" />
                 <div className="text-sm text-gray-300">Workflows</div>
-                <div className="text-white">Operational</div>
+                <div className="text-white">{status === "deployed" ? "Operational" : "Setting up..."}</div>
                 <div className="text-xs text-gray-400 mt-1">
                   {blueprint.suggested_structure.workflows.length} workflows ready
                 </div>
@@ -415,6 +417,7 @@ export const GuildDeploymentPanel: React.FC<GuildDeploymentPanelProps> = ({
             <div className="flex justify-center space-x-4">
               <HolographicButton 
                 variant="outline"
+                disabled={status !== "deployed"}
                 onClick={() => window.open('/dashboard', '_blank')}
               >
                 <Zap className="w-4 h-4 mr-2" />
@@ -422,7 +425,8 @@ export const GuildDeploymentPanel: React.FC<GuildDeploymentPanelProps> = ({
               </HolographicButton>
               
               <HolographicButton 
-                glow
+                glow={status === "deployed"}
+                disabled={status !== "deployed"}
                 onClick={() => window.open('/guild/' + deploymentId, '_blank')}
               >
                 <Cpu className="w-4 h-4 mr-2" />

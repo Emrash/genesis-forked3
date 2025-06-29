@@ -4,14 +4,18 @@ import {
   MessagesSquare,
   Mail, 
   Globe, 
-  Rocket,
   Check,
-  Copy
+  Copy,
+  Rocket,
+  Code
 } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 import { HolographicButton } from '../ui/HolographicButton';
 import { deploymentService, Channel } from '../../services/deploymentService';
 import { MultiChannelConfigForm } from './MultiChannelConfigForm';
+
+// Import the ChannelIntegration component
+import { ChannelIntegration } from './ChannelIntegration';
 
 interface ChannelDeploymentProps {
   guildId: string;
@@ -27,7 +31,7 @@ export const ChannelDeployment: React.FC<ChannelDeploymentProps> = ({
   const [isDeploying, setIsDeploying] = useState(false);
   const [deploymentResult, setDeploymentResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [configMode, setConfigMode] = useState<boolean>(true);
+  const [activeTab, setActiveTab] = useState<'config' | 'deploy' | 'manage'>('config');
 
   const getInitialChannels = () => {
     // Load saved channels from local storage if available
@@ -55,7 +59,7 @@ export const ChannelDeployment: React.FC<ChannelDeploymentProps> = ({
 
   // Handle saving channel configuration
   const handleSaveChannels = (channels: any[]) => {
-    setConfigMode(false);
+    setActiveTab('deploy');
     handleDeployChannels(channels);
   };
   
@@ -126,7 +130,45 @@ export const ChannelDeployment: React.FC<ChannelDeploymentProps> = ({
   
   return (
     <GlassCard variant="medium" className="p-6">
-      {configMode ? (
+      {/* Tab navigation */}
+      <div className="mb-6">
+        <div className="flex border-b border-white/10">
+          <button
+            className={`px-4 py-2 font-medium text-sm ${
+              activeTab === 'config' 
+                ? 'text-white border-b-2 border-purple-500' 
+                : 'text-gray-400 hover:text-white'
+            }`}
+            onClick={() => setActiveTab('config')}
+          >
+            Configure
+          </button>
+          <button
+            className={`px-4 py-2 font-medium text-sm ${
+              activeTab === 'deploy' 
+                ? 'text-white border-b-2 border-purple-500' 
+                : 'text-gray-400 hover:text-white'
+            }`}
+            onClick={() => setActiveTab('deploy')}
+          >
+            Deploy
+          </button>
+          {deploymentResult && (
+            <button
+              className={`px-4 py-2 font-medium text-sm ${
+                activeTab === 'manage' 
+                  ? 'text-white border-b-2 border-purple-500' 
+                  : 'text-gray-400 hover:text-white'
+              }`}
+              onClick={() => setActiveTab('manage')}
+            >
+              Manage
+            </button>
+          )}
+        </div>
+      </div>
+
+      {activeTab === 'config' ? (
         <MultiChannelConfigForm
           guildId={guildId}
           guildName={guildName}
@@ -138,7 +180,7 @@ export const ChannelDeployment: React.FC<ChannelDeploymentProps> = ({
             }
           }}
         />
-      ) : (
+      ) : activeTab === 'deploy' ? (
         <>
           {isDeploying && (
             <div className="flex justify-center items-center py-12">
@@ -207,16 +249,46 @@ export const ChannelDeployment: React.FC<ChannelDeploymentProps> = ({
           {/* Return to config button */}
           <div className="mt-6 text-center">
             <HolographicButton
-              variant="outline"
+              variant="ghost"
               onClick={() => {
-                setConfigMode(true);
-                setDeploymentResult(null);
+                setActiveTab('config');
               }}
             >
-              Configure Additional Channels
+              Back to Configuration
+            </HolographicButton>
+            {deploymentResult && (
+              <HolographicButton
+                variant="outline"
+                className="ml-3"
+                onClick={() => {
+                  setActiveTab('manage');
+                }}
+              >
+                Manage Channels
+              </HolographicButton>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Manage tab content */}
+          <ChannelIntegration 
+            guildId={guildId}
+            guildName={guildName}
+            channels={deploymentResult?.channels || []}
+          />
+          
+          <div className="mt-6 text-center">
+            <HolographicButton
+              variant="outline"
+              onClick={() => {
+                setActiveTab('config');
+              }}
+            >
+              Edit Channel Configuration
             </HolographicButton>
           </div>
-        </motion.div>
+        </>
       )}
     </GlassCard>
   );

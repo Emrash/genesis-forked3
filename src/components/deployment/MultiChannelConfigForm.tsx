@@ -10,16 +10,16 @@ import {
   Plus, 
   Save, 
   ExternalLink, 
-  AlertTriangle 
+  AlertTriangle,
+  Check,
+  Trash2
 } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 import { HolographicButton } from '../ui/HolographicButton';
+import { Channel } from '../../services/deploymentService';
 
-export interface ChannelConfig {
+export interface ChannelConfig extends Channel {
   id?: string;
-  type: 'web' | 'slack' | 'email' | 'api' | 'discord' | 'custom';
-  name: string;
-  config: Record<string, any>;
 }
 
 interface MultiChannelConfigFormProps {
@@ -48,8 +48,7 @@ export const MultiChannelConfigForm: React.FC<MultiChannelConfigFormProps> = ({
     { id: 'slack', name: 'Slack', icon: MessageSquare, description: 'Connect to Slack workspace' },
     { id: 'email', name: 'Email', icon: Mail, description: 'Email integration' },
     { id: 'api', name: 'API', icon: Code, description: 'REST API access' },
-    { id: 'discord', name: 'Discord', icon: MessageSquare, description: 'Discord bot integration' },
-    { id: 'custom', name: 'Custom', icon: Settings, description: 'Custom integration' }
+    { id: 'discord', name: 'Discord', icon: MessageSquare, description: 'Discord bot integration' }
   ];
   
   // Initialize with a web channel if none exist
@@ -213,9 +212,9 @@ export const MultiChannelConfigForm: React.FC<MultiChannelConfigFormProps> = ({
               type="text"
               value={currentChannel.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
-              className={`w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.name ? 'border-red-500' : ''
-              }`}
+              className={`w-full p-3 bg-white/10 border ${
+                errors.name ? 'border-red-500/50' : 'border-white/20'
+              } rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
               placeholder="My Channel"
             />
             {errors.name && (
@@ -274,9 +273,9 @@ export const MultiChannelConfigForm: React.FC<MultiChannelConfigFormProps> = ({
                   type="text"
                   value={currentChannel.config.webhookUrl || ''}
                   onChange={(e) => handleConfigChange('webhookUrl', e.target.value)}
-                  className={`w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.webhookUrl ? 'border-red-500' : ''
-                  }`}
+                  className={`w-full p-3 bg-white/10 border ${
+                    errors.webhookUrl ? 'border-red-500/50' : 'border-white/20'
+                  } rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   placeholder="https://hooks.slack.com/services/..."
                 />
                 {errors.webhookUrl && (
@@ -328,9 +327,9 @@ export const MultiChannelConfigForm: React.FC<MultiChannelConfigFormProps> = ({
                   type="email"
                   value={currentChannel.config.email || ''}
                   onChange={(e) => handleConfigChange('email', e.target.value)}
-                  className={`w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.email ? 'border-red-500' : ''
-                  }`}
+                  className={`w-full p-3 bg-white/10 border ${
+                    errors.email ? 'border-red-500/50' : 'border-white/20'
+                  } rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   placeholder="guild@yourdomain.com"
                 />
                 {errors.email && (
@@ -440,53 +439,6 @@ export const MultiChannelConfigForm: React.FC<MultiChannelConfigFormProps> = ({
                 <label htmlFor="publicCommands" className="text-sm text-gray-300">
                   Enable public commands (anyone can interact)
                 </label>
-              </div>
-            </div>
-          )}
-          
-          {currentChannel.type === 'custom' && (
-            <div className="space-y-4 bg-white/5 p-4 rounded-lg border border-white/10">
-              <div>
-                <label className="block text-sm text-gray-300 mb-1">Integration Type</label>
-                <input
-                  type="text"
-                  value={currentChannel.config.integrationType || ''}
-                  onChange={(e) => handleConfigChange('integrationType', e.target.value)}
-                  className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., Telegram, WhatsApp, Custom API"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm text-gray-300 mb-1">Configuration (JSON)</label>
-                <textarea
-                  value={
-                    typeof currentChannel.config.customConfig === 'object'
-                      ? JSON.stringify(currentChannel.config.customConfig, null, 2)
-                      : currentChannel.config.customConfig || '{}'
-                  }
-                  onChange={(e) => {
-                    try {
-                      const parsed = JSON.parse(e.target.value);
-                      handleConfigChange('customConfig', parsed);
-                    } catch (error) {
-                      // Store as string if not valid JSON
-                      handleConfigChange('customConfig', e.target.value);
-                    }
-                  }}
-                  className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows={5}
-                  placeholder='{}'
-                />
-              </div>
-              
-              <div className="bg-yellow-900/20 border border-yellow-500/30 p-4 rounded-lg">
-                <div className="flex items-start">
-                  <AlertTriangle className="w-5 h-5 text-yellow-400 mr-2 mt-0.5" />
-                  <p className="text-yellow-300 text-sm">
-                    Custom integrations require additional setup and may need developer assistance.
-                  </p>
-                </div>
               </div>
             </div>
           )}
@@ -603,7 +555,7 @@ export const MultiChannelConfigForm: React.FC<MultiChannelConfigFormProps> = ({
                             size="sm"
                             onClick={() => handleEditChannel(channel, index)}
                           >
-                            Settings
+                            <Settings className="w-4 h-4" />
                           </HolographicButton>
                           
                           <HolographicButton
@@ -612,7 +564,7 @@ export const MultiChannelConfigForm: React.FC<MultiChannelConfigFormProps> = ({
                             onClick={() => handleRemoveChannel(index)}
                             className="text-red-400 hover:text-red-300"
                           >
-                            Remove
+                            <Trash2 className="w-4 h-4" />
                           </HolographicButton>
                         </div>
                       </div>
@@ -637,34 +589,25 @@ export const MultiChannelConfigForm: React.FC<MultiChannelConfigFormProps> = ({
             )}
           </div>
           
-          {/* Deploy button */}
-          <div className="flex justify-end">
+          {/* Action buttons */}
+          <div className="flex justify-between space-x-4 border-t border-white/10 pt-6">
+            <HolographicButton 
+              variant="ghost" 
+              onClick={onCancel}
+            >
+              <X className="w-4 h-4 mr-2" />
+              Cancel
+            </HolographicButton>
+            
             <HolographicButton
               onClick={() => onSave(channels)}
               disabled={channels.length === 0}
               glow
-              size="lg"
             >
-              {isDeploying ? (
-                <>
-                  <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                  Deploying...
-                </>
-              ) : (
-                <>
-                  <Rocket className="w-5 h-5 mr-2" />
-                  Deploy Channels
-                </>
-              )}
+              <Check className="w-4 h-4 mr-2" />
+              Save Channels
             </HolographicButton>
           </div>
-          
-          {/* Error display */}
-          {error && (
-            <div className="mt-4 bg-red-500/20 border border-red-500/30 p-3 rounded-lg text-red-300">
-              {error}
-            </div>
-          )}
         </>
       )}
     </>
