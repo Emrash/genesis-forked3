@@ -54,6 +54,8 @@ export function useCanvas() {
     setError(null);
     
     try {
+      console.log('🎨 Loading canvas from blueprint:', blueprint.id);
+      
       const { nodes: blueprintNodes, edges: blueprintEdges } = await canvasService.generateCanvasFromBlueprint(blueprint);
       
       console.log("Canvas generated successfully:", { 
@@ -66,9 +68,11 @@ export function useCanvas() {
       addToHistory(blueprintNodes, blueprintEdges);
       
       console.log('✅ Canvas loaded from blueprint:', blueprint.id);
+      return { nodes: blueprintNodes, edges: blueprintEdges };
     } catch (err) {
       console.error('Failed to load canvas from blueprint:', err);
       setError('Failed to generate canvas from blueprint');
+      throw err;
     } finally {
       setIsLoading(false);
     }

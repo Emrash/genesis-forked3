@@ -142,6 +142,20 @@ export const credentialService = {
           description: 'Bot User OAuth Token from the Slack API dashboard' 
         }
       ],
+      'slack api': [
+        { 
+          key: 'slack_api_key', 
+          name: 'Slack API Key', 
+          description: 'Bot User OAuth Token from the Slack API dashboard' 
+        }
+      ],
+      'slack webhook': [
+        {
+          key: 'slack_webhook_url',
+          name: 'Slack Webhook URL',
+          description: 'Webhook URL for posting messages to Slack'
+        }
+      ],
       'gmail': [
         { 
           key: 'gmail_api_key', 
@@ -149,7 +163,20 @@ export const credentialService = {
           description: 'API Key from Google Cloud Console with Gmail API enabled' 
         }
       ],
+      'email': [
+        { 
+          key: 'email_api_key', 
+          description: 'API Key for email service' 
+        }
+      ],
       'google_sheets': [
+        { 
+          key: 'google_sheets_api_key', 
+          name: 'Google Sheets API Key', 
+          description: 'API Key from Google Cloud Console with Sheets API enabled' 
+        }
+      ],
+      'google sheets': [
         { 
           key: 'google_sheets_api_key', 
           name: 'Google Sheets API Key', 
@@ -168,7 +195,21 @@ export const credentialService = {
           description: 'Voice ID from ElevenLabs voice library'
         }
       ],
+      'voice': [
+        { 
+          key: 'elevenlabs_api_key', 
+          name: 'ElevenLabs API Key', 
+          description: 'API Key from ElevenLabs dashboard' 
+        }
+      ],
       'gemini': [
+        { 
+          key: 'gemini_api_key', 
+          name: 'Gemini API Key', 
+          description: 'API Key from Google AI Studio' 
+        }
+      ],
+      'ai': [
         { 
           key: 'gemini_api_key', 
           name: 'Gemini API Key', 

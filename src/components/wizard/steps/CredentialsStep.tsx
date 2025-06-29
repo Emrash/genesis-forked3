@@ -325,6 +325,14 @@ export const CredentialsStep: React.FC = () => {
       ...prev,
       [key]: !prev[key]
     }));
+    
+    // Generate curl command if not already generated
+    if (!curlCommands[key]) {
+      const credential = requiredCredentials.find(cred => cred.key === key);
+      if (credential) {
+        generateCurl(credential, key);
+      }
+    }
   };
 
   const generateCurl = async (credential: any, key: string) => {

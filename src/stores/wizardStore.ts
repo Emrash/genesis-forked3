@@ -97,7 +97,6 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
   generateBlueprint: async () => {
     const { user_input } = get();
     
-    // Phase 3: Enhanced validation
     if (!user_input.trim()) {
       get().addError('Please describe what you want to achieve');
       return;
@@ -115,10 +114,10 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
 
     try {
       set({ isLoading: true, errors: [] });
-      console.log('🤖 Phase 3: Starting AI blueprint generation with Gemini Pro...');
+      console.log('🤖 Starting enhanced AI blueprint generation with Gemini 1.5 Pro...');
       
-      // Call real API with advanced error handling
-      const blueprint = await apiMethods.generateBlueprint(user_input.trim());
+      // Call blueprint service with direct Gemini integration
+      const blueprint = await blueprintService.generateBlueprint(user_input.trim());
       
       get().setBlueprint(blueprint);
       get().setStep('blueprint');
@@ -173,20 +172,25 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
 
     try {
       set({ isLoading: true, errors: [] });
-      console.log('🧪 Phase 3: Starting enhanced guild simulation with intelligence...');
+      console.log('🧪 Starting enhanced guild simulation with intelligence...');
       
-      // Phase 3: Enhanced simulation with real-time processing
+      // Get the preferred AI model from localStorage
+      const preferredModel = localStorage.getItem('preferred_ai_model') || 'gemini-flash';
+      console.log('🧠 Using AI model for simulation:', preferredModel);
+      
+      // Enhanced simulation with real-time processing
       const simulationData = {
         blueprint_id: blueprint.id,
         agents: blueprint.suggested_structure.agents,
         workflows: blueprint.suggested_structure.workflows,
         test_credentials: credentials,
-        simulation_type: 'enhanced_intelligence_test',
+        simulation_type: 'comprehensive',
         parameters: {
-          duration_minutes: 5,
+          duration_minutes: 2,
           load_factor: 1.0,
           error_injection: true,
-          performance_profiling: true
+          performance_profiling: true,
+          ai_model: preferredModel
         }
       };
       
@@ -223,7 +227,7 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
 
     try {
       set({ isLoading: true, errors: [] });
-      console.log('🚀 Phase 3: Starting enhanced guild deployment with business intelligence...');
+      console.log('🚀 Starting enhanced guild deployment with business intelligence...');
       
       // Save simulation results first (to ensure we don't lose them)
       try {
@@ -231,6 +235,9 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
       } catch (e) {
         console.warn('Failed to save simulation results:', e);
       }
+      
+      // Get the preferred AI model from localStorage
+      const preferredModel = localStorage.getItem('preferred_ai_model') || 'gemini-flash';
       
       // Create the guild with enhanced metadata
       const guildData = {
@@ -246,7 +253,8 @@ export const useWizardStore = create<WizardStore>((set, get) => ({
           ai_generated: true,
           confidence_score: 0.95,
           estimated_roi: '340%',
-          setup_time_minutes: blueprint.suggested_structure.agents.length * 3
+          setup_time_minutes: blueprint.suggested_structure.agents.length * 3,
+          ai_model: preferredModel
         }
       };
       

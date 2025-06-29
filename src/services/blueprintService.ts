@@ -1,6 +1,11 @@
 import { Blueprint } from '../types';
 import { apiMethods } from '../lib/api';
 
+// Gemini API configuration
+const GEMINI_API_KEY = 'AIzaSyA81SV6mvA9ShZasJgcVl4ps-YQm9DrKsc';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+const GEMINI_MODEL = 'gemini-1.5-pro';
+
 /**
  * Service for handling blueprint operations
  */
@@ -11,6 +16,119 @@ export const blueprintService = {
   generateBlueprint: async (userInput: string): Promise<Blueprint> => {
     try {
       console.log('🧠 Generating blueprint from user input:', userInput.substring(0, 50) + '...');
+      
+      // First try to use Gemini API directly for better blueprint generation
+      try {
+        console.log('🧠 Attempting direct Gemini API call for enhanced blueprint generation');
+        
+        // Create a detailed system prompt for blueprint generation
+        const systemPrompt = `You are GenesisOS Blueprint Generator, an expert AI system architect specialized in designing 
+AI agent-based systems. Your role is to analyze user goals and create structured blueprints for autonomous digital workforces.
+
+Your output must follow this exact JSON structure:
+{
+  "id": "blueprint-[unique_id]",
+  "user_input": "[original user input]",
+  "interpretation": "[your understanding of the user's goal]",
+  "suggested_structure": {
+    "guild_name": "[appropriate name for this guild]",
+    "guild_purpose": "[clear purpose statement]",
+    "agents": [
+      {
+        "name": "[agent name]",
+        "role": "[specific role]",
+        "description": "[detailed description]",
+        "tools_needed": ["[tool1]", "[tool2]", "..."]
+      }
+    ],
+    "workflows": [
+      {
+        "name": "[workflow name]",
+        "description": "[detailed description]",
+        "trigger_type": "[manual|schedule|webhook|event]"
+      }
+    ]
+  }
+}
+
+Create coherent, business-focused blueprints with:
+- 3-5 specialized agents with distinct roles
+- 2-3 well-defined workflows
+- Appropriate tools for each agent
+- Realistic integrations (Slack, Email, Google Sheets, etc.)`;
+
+        // Design the prompt for Gemini
+        const prompt = `Create a complete blueprint for an AI-powered digital workforce based on this user goal:
+
+"${userInput}"
+
+Design a system of intelligent AI agents working together to achieve this goal.
+Include specialized agents with clear roles, appropriate tools, and workflow automations.`;
+
+        // Call Gemini API directly
+        const response = await fetch(`${GEMINI_API_URL}/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: prompt }]
+            }],
+            systemInstruction: {
+              parts: [{ text: systemPrompt }]
+            },
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 2048
+            }
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+        // Extract JSON from the response
+        try {
+          // Look for JSON structure in the response
+          const jsonStart = generatedText.indexOf('{');
+          const jsonEnd = generatedText.lastIndexOf('}') + 1;
+          
+          if (jsonStart >= 0 && jsonEnd > jsonStart) {
+            const jsonStr = generatedText.substring(jsonStart, jsonEnd);
+            const blueprint = JSON.parse(jsonStr);
+            
+            // Generate a unique ID if not present
+            if (!blueprint.id) {
+              blueprint.id = `blueprint-${Date.now()}`;
+            }
+            
+            // Ensure user input is set
+            blueprint.user_input = userInput;
+            
+            // Add status and timestamp if not present
+            if (!blueprint.status) {
+              blueprint.status = 'pending';
+            }
+            if (!blueprint.created_at) {
+              blueprint.created_at = new Date().toISOString();
+            }
+            
+            console.log('✅ Blueprint generated successfully with Gemini API');
+            return blueprint;
+          }
+        } catch (jsonError) {
+          console.error('Failed to parse JSON from Gemini response:', jsonError);
+        }
+      } catch (geminiError) {
+        console.warn('⚠️ Direct Gemini API call failed, falling back to API method:', geminiError);
+      }
+      
+      // Fall back to the API method if direct Gemini call fails
       return await apiMethods.generateBlueprint(userInput.trim());
     } catch (error) {
       console.error('Failed to generate blueprint:', error);

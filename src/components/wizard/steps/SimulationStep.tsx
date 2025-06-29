@@ -39,7 +39,12 @@ export const SimulationStep: React.FC = () => {
   const handleRunSimulation = async () => {
     // We'll pass the simulation settings to the runSimulation function
     // to be used in the actual simulation
-    await runSimulation();
+    try {
+      console.log('🧪 Running simulation with settings:', simulationSettings);
+      await runSimulation();
+    } catch (error) {
+      console.error('Simulation failed:', error);
+    }
   };
 
   const handleDeploy = () => {
@@ -131,16 +136,16 @@ export const SimulationStep: React.FC = () => {
                     </HolographicButton>
                   </div>
                 ) : (
-                  <div className="space-y-6">
-                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                      <Play className="w-8 h-8 text-blue-600" />
-                    </div>
+                        <option value="gemini-flash">Gemini Flash (Default)</option>
+                        <option value="gemini-pro">Gemini Pro (Advanced)</option>
+                        <option value="claude-3-sonnet">Claude 3 Sonnet (Experimental)</option>
+                        <option value="gpt-4">GPT-4 (Premium)</option>
                     
                     <div className="mb-6">
-                      <h3 className="text-lg font-semibold text-white mb-2">Ready for Intelligence Testing</h3>
-                      <p className="text-gray-300 max-w-2xl mx-auto">
-                        We'll test your {blueprint?.suggested_structure.agents.length} agents with realistic scenarios,
-                        measuring response time, accuracy, and inter-agent coordination.
+                        {selectedModel === 'gemini-flash' && "Fast, efficient responses. Good for most tasks."}
+                        {selectedModel === 'gemini-pro' && "Enhanced reasoning capabilities. Better for complex tasks."}
+                        {selectedModel === 'claude-3-sonnet' && "Experimental integration with Claude's capabilities."}
+                        {selectedModel === 'gpt-4' && "Premium tier with GPT-4's advanced intelligence."}
                       </p>
                     </div>
 
@@ -320,8 +325,8 @@ export const SimulationStep: React.FC = () => {
                     <div className="space-y-2">
                       {simulationResults.insights?.map((insight: string, index: number) => (
                         <div key={index} className="flex items-center text-blue-800 text-sm">
-                          <CheckCircle className="w-4 h-4 mr-2 text-blue-600" />
-                          {insight}
+                        value={selectedModel}
+                        onChange={(e) => setSelectedModel(e.target.value)}
                         </div>
                       ))}
                     </div>

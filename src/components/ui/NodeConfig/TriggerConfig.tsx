@@ -23,6 +23,7 @@ export const TriggerConfig: React.FC<TriggerConfigProps> = ({
     label: string;
     description: string;
     triggerType: TriggerNodeData['triggerType'];
+    config?: Record<string, any>;
     schedule?: {
       frequency?: string;
       nextRun?: string;
@@ -33,14 +34,13 @@ export const TriggerConfig: React.FC<TriggerConfigProps> = ({
       method?: string;
       headers?: Record<string, string>;
     };
-    config?: Record<string, any>;
   }>({
     label: data.label,
     description: data.description,
     triggerType: data.triggerType,
+    config: data.config || {},
     schedule: data.schedule,
     webhook: data.webhook,
-    config: data.config
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -56,14 +56,26 @@ export const TriggerConfig: React.FC<TriggerConfigProps> = ({
       ...formData,
       triggerType: newTriggerType,
       // Initialize appropriate fields for the selected trigger type
-      ...(newTriggerType === 'schedule' && !formData.schedule ? { 
-        schedule: { frequency: 'daily', nextRun: '', timezone: 'UTC' } 
+      ...(newTriggerType === 'schedule' ? { 
+        schedule: { 
+          frequency: formData.schedule?.frequency || 'daily', 
+          nextRun: formData.schedule?.nextRun || new Date(Date.now() + 86400000).toISOString().split('T')[0] + 'T09:00', 
+          timezone: formData.schedule?.timezone || 'UTC' 
+        } 
       } : {}),
-      ...(newTriggerType === 'webhook' && !formData.webhook ? { 
-        webhook: { url: '', method: 'POST', headers: {} } 
+      ...(newTriggerType === 'webhook' ? { 
+        webhook: { 
+          url: formData.webhook?.url || '/api/webhook', 
+          method: formData.webhook?.method || 'POST', 
+          headers: formData.webhook?.headers || {} 
+        } 
       } : {}),
-      ...(newTriggerType === 'event' && !formData.config?.event ? { 
-        config: { ...formData.config, event: '', source: '' } 
+      ...(newTriggerType === 'event' ? { 
+        config: { 
+          ...formData.config, 
+          event: formData.config?.event || 'data_updated', 
+          source: formData.config?.source || 'database' 
+        } 
       } : {})
     });
   };

@@ -125,9 +125,60 @@ export const apiService = {
     service?: string;
   }): Promise<string> => {
     try {
-      // This would call Gemini API to generate a curl command based on the description
-      // For now, we'll return a template
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
+      // Gemini API configuration
+      const GEMINI_API_KEY = 'AIzaSyA81SV6mvA9ShZasJgcVl4ps-YQm9DrKsc';
+      const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+      const GEMINI_MODEL = 'gemini-1.5-pro';
+      
+      // Create a prompt for Gemini to generate a curl command
+      const prompt = `Generate a curl command for the following API request:
+      
+Description: ${description}
+${apiInfo?.endpoint ? `Endpoint: ${apiInfo.endpoint}` : ''}
+${apiInfo?.method ? `Method: ${apiInfo.method}` : ''}
+${apiInfo?.service ? `Service: ${apiInfo.service}` : ''}
+
+Please provide a complete, working curl command with proper formatting, headers, and sample data.`;
+      
+      try {
+        // Call Gemini API
+        const response = await fetch(`${GEMINI_API_URL}/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: prompt }]
+            }],
+            generationConfig: {
+              temperature: 0.2,
+              maxOutputTokens: 1024
+            }
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        
+        // Extract the curl command from the response
+        const curlMatch = generatedText.match(/```(?:bash|sh)?\s*(curl .+?)```/s) || 
+                         generatedText.match(/(curl .+?)(?:\n\n|$)/s);
+        
+        if (curlMatch && curlMatch[1]) {
+          return curlMatch[1].trim();
+        }
+        
+        // If no curl command found in the formatted response, return the whole text
+        return generatedText.trim();
+      } catch (error) {
+        console.error('Failed to generate curl with Gemini:', error);
+        // Fall back to template-based generation
+      }
       
       const method = apiInfo?.method || 'POST';
       const endpoint = apiInfo?.endpoint || 'https://api.example.com/endpoint';

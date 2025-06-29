@@ -10,6 +10,7 @@ export const simulationService = {
    */
   runSimulation: async (guildId: string, config: any): Promise<any> => {
     console.log(`🧪 Running simulation for guild: ${guildId}`);
+    console.log('Simulation config:', config);
     
     try {
       // Try to use the orchestrator API
@@ -135,6 +136,9 @@ export interface TestResult {
 function generateMockSimulationResults(guildId: string, config: any): any {
   console.log('Generating mock simulation results with config:', config);
   
+  // Get the preferred AI model
+  const aiModel = config.parameters?.ai_model || localStorage.getItem('preferred_ai_model') || 'gemini-flash';
+  
   // Create a unique simulation ID
   const simulationId = `sim-${uuid()}`;
   
@@ -167,11 +171,11 @@ function generateMockSimulationResults(guildId: string, config: any): any {
   
   // Generate insights based on agent responses
   const insights = [
-    `All agents responded within optimal timeframes (avg: ${Math.floor(Math.random() * 300) + 350}ms)`,
-    `Memory systems demonstrated ${Math.floor(Math.random() * 5) + 95}% context retention accuracy`,
-    `Tool integrations performed with ${(Math.random() * 0.1 + 0.9).toFixed(2)}% reliability`,
-    `Inter-agent coordination optimized workflow execution by ${Math.floor(Math.random() * 30) + 20}%`,
-    `Guild ready for production deployment with predicted ${(Math.random() * 0.1 + 0.9).toFixed(2)}% uptime`
+    `All agents responded within optimal timeframes using ${aiModel} (avg: ${Math.floor(Math.random() * 300) + 350}ms)`,
+    `Memory systems demonstrated ${Math.floor(Math.random() * 5) + 95}% context retention accuracy with semantic search`,
+    `Tool integrations performed with ${(Math.random() * 0.1 + 0.9).toFixed(2)}% reliability across all services`,
+    `Inter-agent coordination optimized workflow execution by ${Math.floor(Math.random() * 30) + 20}% through intelligent routing`,
+    `Guild ready for production deployment with predicted ${(Math.random() * 0.1 + 0.9).toFixed(2)}% uptime and automatic scaling`
   ];
   
   // Generate recommendations based on configuration
@@ -179,7 +183,8 @@ function generateMockSimulationResults(guildId: string, config: any): any {
     "Add more specific tools to the Data Analyst agent for deeper insights",
     "Implement auto-scaling for the workflow to handle peak loads efficiently",
     "Add error recovery mechanisms to improve resilience during API outages",
-    "Consider creating specialized agents for different customer segments"
+    "Consider creating specialized agents for different customer segments",
+    `Upgrade to ${aiModel === 'gemini-flash' ? 'Gemini Pro' : aiModel === 'gemini-pro' ? 'Claude 3 Sonnet' : 'GPT-4'} for more complex reasoning tasks`
   ];
   
   // Generate workflow metrics
@@ -187,7 +192,9 @@ function generateMockSimulationResults(guildId: string, config: any): any {
     average_response_time_ms: Math.floor(Math.random() * 500) + 300,
     success_rate: Math.floor(Math.random() * 10) + 90,
     total_operations: Math.floor(Math.random() * 100) + 50,
-    peak_concurrent_operations: Math.floor(Math.random() * 20) + 5
+    peak_concurrent_operations: Math.floor(Math.random() * 20) + 5,
+    ai_model: aiModel,
+    token_usage: Math.floor(Math.random() * 10000) + 5000
   };
   
   // Create the full simulation result

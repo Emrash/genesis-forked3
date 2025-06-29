@@ -8,6 +8,11 @@ const hasRealBackend = import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
   (isDevelopment ? 'http://localhost:3000' : 'https://genesisOS-backend-production.up.railway.app');
 
+// Gemini API configuration
+const GEMINI_API_KEY = 'AIzaSyA81SV6mvA9ShZasJgcVl4ps-YQm9DrKsc';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+const GEMINI_MODEL = 'gemini-1.5-pro';
+
 // Remove trailing slash if present to prevent path issues
 const normalizedApiBaseUrl = API_BASE_URL.endsWith('/') 
   ? API_BASE_URL.slice(0, -1) 
@@ -233,13 +238,104 @@ export const apiMethods = {
   generateBlueprint: async (userInput: string): Promise<any> => {
     if (!hasRealBackend && isDevelopment) {
       console.log('🤖 Phase 3: Development mode - Trying orchestrator first before falling back...');
-      
-      // Try to connect to the orchestrator even in dev mode
+
+      // First try to use Gemini API directly for better blueprint generation
       try {
+        console.log('🧠 Generating blueprint with Gemini API directly');
+        
+        // Create a detailed system prompt for blueprint generation
+        const systemPrompt = `You are GenesisOS Blueprint Generator, an expert AI system architect specialized in designing 
+AI agent-based systems. Your role is to analyze user goals and create structured blueprints for autonomous digital workforces.
+
+Your output must follow this exact JSON structure:
+{
+  "id": "blueprint-[unique_id]",
+  "user_input": "[original user input]",
+  "interpretation": "[your understanding of the user's goal]",
+  "suggested_structure": {
+    "guild_name": "[appropriate name for this guild]",
+    "guild_purpose": "[clear purpose statement]",
+    "agents": [
+      {
+        "name": "[agent name]",
+        "role": "[specific role]",
+        "description": "[detailed description]",
+        "tools_needed": ["[tool1]", "[tool2]", "..."]
+      }
+    ],
+    "workflows": [
+      {
+        "name": "[workflow name]",
+        "description": "[detailed description]",
+        "trigger_type": "[manual|schedule|webhook|event]"
+      }
+    ]
+  }
+}
+
+Create coherent, business-focused blueprints with:
+- 3-5 specialized agents with distinct roles
+- 2-3 well-defined workflows
+- Appropriate tools for each agent
+- Realistic integrations (Slack, Email, Google Sheets, etc.)`;
+
+        // Design the prompt for Gemini
+        const prompt = `Create a complete blueprint for an AI-powered digital workforce based on this user goal:
+
+"${userInput}"
+
+Design a system of intelligent AI agents working together to achieve this goal.
+Include specialized agents with clear roles, appropriate tools, and workflow automations.`;
+
+        // Call Gemini API directly
+        const response = await fetch(`${GEMINI_API_URL}/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: prompt }]
+            }],
+            systemInstruction: {
+              parts: [{ text: systemPrompt }]
+            },
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 2048
+            }
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+        // Extract JSON from the response
+        try {
+          // Look for JSON structure in the response
+          const jsonStart = generatedText.indexOf('{');
+          const jsonEnd = generatedText.lastIndexOf('}') + 1;
+          
+          if (jsonStart >= 0 && jsonEnd > jsonStart) {
+            const jsonStr = generatedText.substring(jsonStart, jsonEnd);
+            const blueprint = JSON.parse(jsonStr);
+            
+            console.log('✅ Blueprint generated successfully with Gemini API');
+            return blueprint;
+          }
+        } catch (jsonError) {
+          console.error('Failed to parse JSON from Gemini response:', jsonError);
+        }
+
+        // If Gemini direct call fails or returns invalid JSON, try the orchestrator
         console.log('Attempting to connect to orchestrator at', normalizedApiBaseUrl);
-        const response = await api.post('/wizard/generate-blueprint', { user_input: userInput });
+        const orchestratorResponse = await api.post('/wizard/generate-blueprint', { user_input: userInput });
         console.log('✅ Successfully connected to orchestrator!');
-        return response.data;
+        return orchestratorResponse.data;
       } catch (error) {
         console.log('⚠️ Orchestrator not available, using mock blueprint generator');
         
