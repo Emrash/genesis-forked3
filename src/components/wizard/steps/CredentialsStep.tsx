@@ -19,7 +19,7 @@ export const CredentialsStep: React.FC = () => {
   const [curlCommands, setCurlCommands] = useState<Record<string, string>>({});
   const [testingApi, setTestingApi] = useState<Record<string, boolean>>({});
   const [testResults, setTestResults] = useState<Record<string, any>>({});
-
+  
   // Generate required credentials based on blueprint
   const getRequiredCredentials = () => {
     if (!blueprint) return [];
@@ -187,11 +187,13 @@ export const CredentialsStep: React.FC = () => {
     };
     
     // Collect all tools mentioned in the blueprint
-    if (blueprint.suggested_structure?.agents) {
+    if (blueprint.suggested_structure?.agents && Array.isArray(blueprint.suggested_structure.agents)) {
       blueprint.suggested_structure.agents.forEach(agent => {
+        if (agent && agent.tools_needed && Array.isArray(agent.tools_needed)) {
         agent.tools_needed.forEach(tool => {
           neededTools.add(tool);
         });
+        }
       });
     }
     
@@ -201,7 +203,8 @@ export const CredentialsStep: React.FC = () => {
     neededTools.add('Gemini API');
     
     // Map needed tools to credential templates
-    const requiredCredentialsList = Array.from(neededTools).map(tool => {
+    const toolArray = Array.from(neededTools || []);
+    const requiredCredentialsList = toolArray.map(tool => {
       // Find exact match or partial match
       const exactMatch = credentialTemplates[tool as keyof typeof credentialTemplates];
       if (exactMatch) {
@@ -256,7 +259,7 @@ export const CredentialsStep: React.FC = () => {
     return requiredCredentialsList;
   };
   
-  const requiredCredentials = getRequiredCredentials();
+  const requiredCredentials = blueprint ? getRequiredCredentials() : [];
 
   const handleCredentialChange = (key: string, value: string) => {
     setLocalCredentials(prev => ({
@@ -498,7 +501,7 @@ export const CredentialsStep: React.FC = () => {
         </div>
 
         <div className="space-y-6">
-          {requiredCredentials.map((credential) => {
+          {Array.isArray(requiredCredentials) && requiredCredentials.map((credential) => {
             const key = credential.key;
             return (
               <GlassCard key={key} variant="medium" className="p-6">
