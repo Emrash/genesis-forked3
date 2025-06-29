@@ -2,10 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { motion } from 'framer-motion';
 import { AgentConfig } from './AgentConfig';
-import { TriggerConfig } from './TriggerConfig'; 
-import { ActionConfig } from './ActionConfig'; 
-import { ConditionConfig } from './ConditionConfig';
-import { DelayConfig } from './DelayConfig';
+import { TriggerConfig } from './TriggerConfig';
+import { ActionConfig } from './ActionConfig';
 import { Node } from '@xyflow/react';
 import { NodeData, AgentNodeData, TriggerNodeData, ActionNodeData, ConditionNodeData, DelayNodeData } from '../../../types/canvas';
 
@@ -52,26 +50,6 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
           <ActionConfig
             nodeId={node.id}
             data={node.data as ActionNodeData}
-            onUpdate={onUpdate}
-            onDelete={onDelete}
-            onClose={onClose}
-          />
-        );
-      case 'condition':
-        return (
-          <ConditionConfig
-            nodeId={node.id}
-            data={node.data as ConditionNodeData}
-            onUpdate={onUpdate}
-            onDelete={onDelete}
-            onClose={onClose}
-          />
-        );
-      case 'delay':
-        return (
-          <DelayConfig
-            nodeId={node.id}
-            data={node.data as DelayNodeData}
             onUpdate={onUpdate}
             onDelete={onDelete}
             onClose={onClose}

@@ -19,13 +19,9 @@ export const CredentialsStep: React.FC = () => {
   const [curlCommands, setCurlCommands] = useState<Record<string, string>>({});
   const [testingApi, setTestingApi] = useState<Record<string, boolean>>({});
   const [testResults, setTestResults] = useState<Record<string, any>>({});
-  const [testingApi, setTestingApi] = useState<Record<string, boolean>>({});
-  const [testResults, setTestResults] = useState<Record<string, any>>({});
 
   // Generate required credentials based on blueprint
   const getRequiredCredentials = () => {
-    if (!blueprint) return [];
-    
     if (!blueprint) return [];
     
     const neededTools = new Set<string>();
@@ -191,9 +187,9 @@ export const CredentialsStep: React.FC = () => {
     };
     
     // Collect all tools mentioned in the blueprint
-    if (blueprint?.suggested_structure?.agents) {
+    if (blueprint.suggested_structure?.agents) {
       blueprint.suggested_structure.agents.forEach(agent => {
-        (agent.tools_needed || []).forEach(tool => {
+        agent.tools_needed.forEach(tool => {
           neededTools.add(tool);
         });
       });
@@ -486,7 +482,7 @@ export const CredentialsStep: React.FC = () => {
   };
 
   const allCredentialsValid = requiredCredentials.every(
-      cred => localCredentials[cred.key] && (validationStatus[cred.key] || false)
+    cred => localCredentials[cred.key] && validationStatus[cred.key]
   );
 
   return (
