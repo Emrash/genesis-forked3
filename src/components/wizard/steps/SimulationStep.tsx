@@ -312,8 +312,8 @@ export const SimulationStep: React.FC = () => {
                     <div className="space-y-2">
                       {simulationResults.insights?.map((insight: string, index: number) => (
                         <div key={index} className="flex items-center text-blue-800 text-sm">
-                        value={selectedModel}
-                        onChange={(e) => setSelectedModel(e.target.value)}
+                          <CheckCircle className="w-3 h-3 mr-2 text-blue-500" />
+                          {insight}
                         </div>
                       ))}
                     </div>
