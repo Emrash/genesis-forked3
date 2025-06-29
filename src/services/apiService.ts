@@ -232,10 +232,6 @@ Please provide a complete, working curl command with proper formatting, headers,
         console.error('All curl generation methods failed:', fallbackError);
         return `# Error generating curl command\ncurl -X POST "https://api.example.com/endpoint" \\\n  -H "Content-Type: application/json" \\\n  -d '{"query": "${description.replace(/"/g, '\\"')}"}'`;
       }
-    } catch (error) {
-      // This should never execute due to the inner try-catch, but keeping for safety
-      console.error('Unexpected error in generateCurlWithGemini:', error);
-      return `# Unexpected error generating curl command\ncurl -X POST "https://api.example.com/endpoint" \\\n  -H "Content-Type: application/json" \\\n  -d '{"query": "${description.replace(/"/g, '\\"')}"}'`;
     }
   }
 };
