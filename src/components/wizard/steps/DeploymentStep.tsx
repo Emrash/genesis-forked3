@@ -210,7 +210,6 @@ export const DeploymentStep: React.FC = () => {
               <ChannelMonitor
                 guildId={deploymentId}
                 channelId={null}
-                }
               />
             )}
 
