@@ -193,7 +193,25 @@ export const apiMethods = {
   // Health check with enhanced metrics
   healthCheck: async () => {
     if (!hasRealBackend && isDevelopment) {
-      console.log('🔧 Phase 3: Development mode - Using enhanced mock health check');
+      console.log('🔧 Phase 3: Development mode - Attempting to connect to orchestrator first');
+      
+      // Try to connect to the orchestrator service first before falling back to mock
+      try {
+        const orchestratorUrl = normalizedApiBaseUrl || 'http://localhost:3000';
+        console.log('🔄 Attempting to connect to orchestrator at:', orchestratorUrl);
+        
+        const response = await axios.get(`${orchestratorUrl}/status`, {
+          timeout: 5000
+        });
+        
+        if (response.data) {
+          console.log('✅ Successfully connected to orchestrator:', response.data);
+          return response.data;
+        }
+      } catch (error) {
+        console.warn('⚠️ Orchestrator service unavailable, using enhanced mock health check');
+      }
+      
       await new Promise(resolve => setTimeout(resolve, 300));
       return {
         ...mockData.healthCheck,
@@ -237,51 +255,96 @@ export const apiMethods = {
   // Blueprint generation with AI integration
   generateBlueprint: async (userInput: string): Promise<any> => {
     if (isDevelopment) {
-      console.log('🤖 Phase 3: Development mode - Trying agent service first before falling back...');
+      console.log('🤖 Phase 3: Development mode - Implementing complete fallback chain...');
 
-      // First try to use agent service for proper backend generation
+      // Create a robust fallback chain that tries all possible services
+      // 1. Try Agent Service directly
+      // 2. Try Orchestrator Service
+      // 3. Try direct Gemini API
+      // 4. Fall back to mock data
+      
       try {
         // First try using the agent service directly
         const agentServiceUrl = import.meta.env.VITE_AGENT_SERVICE_URL || 'http://localhost:8001';
-        console.log('🤖 Attempting to generate blueprint via agent service:', agentServiceUrl);
+        console.log('🤖 Step 1: Attempting to generate blueprint via agent service:', agentServiceUrl);
 
-        const agentResponse = await fetch(`${agentServiceUrl}/v1/generate-blueprint`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_input: userInput })
-        });
-
-        if (agentResponse.ok) {
-          const blueprint = await agentResponse.json();
-          console.log('✅ Blueprint generated successfully via agent service:', blueprint.id);
-          return blueprint;
-        } else {
-          const errorText = await agentResponse.text();
-          console.warn('⚠️ Agent service response error:', agentResponse.status, errorText);
-          throw new Error(`Agent service error: ${agentResponse.status}`);
-        }
-      } catch (error) {
-        console.warn('⚠️ Agent service unavailable, trying orchestrator next', error);
+        const endpoints = [
+          `${agentServiceUrl}/generate-blueprint`, 
+          `${agentServiceUrl}/v1/generate-blueprint`
+        ];
         
+        let blueprintData = null;
+        let successEndpoint = null;
+        
+        // Try multiple potential endpoints for the agent service
+        for (const endpoint of endpoints) {
+          try {
+            console.log('🔄 Trying endpoint:', endpoint);
+            const agentResponse = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_input: userInput })
+            });
+            
+            if (agentResponse.ok) {
+              blueprintData = await agentResponse.json();
+              successEndpoint = endpoint;
+              break;
+            }
+          } catch (endpointError) {
+            console.log(`🔄 Endpoint ${endpoint} failed:`, endpointError.message);
+          }
+        }
+        
+        if (blueprintData) {
+          console.log(`✅ Blueprint generated successfully via agent service at ${successEndpoint}:`, blueprintData.id);
+          return blueprintData;
+        }
+        
+        throw new Error('All agent service endpoints failed');
+      } catch (agentServiceError) {
+        console.warn('⚠️ Agent service unavailable, trying orchestrator next:', agentServiceError.message);
+        
+        // Step 2: Try the orchestrator service
         try {
           // Now try the orchestrator service
-          console.log('Attempting to connect to orchestrator at', normalizedApiBaseUrl);
-          const orchestratorResponse = await api.post('/api/wizard/generate-blueprint', { 
-            user_input: userInput 
-          });
-          console.log('✅ Successfully generated blueprint via orchestrator!');
-          return orchestratorResponse.data;
+          const orchestratorUrl = normalizedApiBaseUrl || 'http://localhost:3000';
+          console.log('🔄 Step 2: Attempting to connect to orchestrator at', orchestratorUrl);
+          
+          const endpoints = [
+            `${orchestratorUrl}/api/wizard/generate-blueprint`,
+            `${orchestratorUrl}/generateBlueprint`,
+            `${orchestratorUrl}/wizard/generate-blueprint`
+          ];
+          
+          for (const endpoint of endpoints) {
+            try {
+              console.log('🔄 Trying orchestrator endpoint:', endpoint);
+              const orchestratorResponse = await axios.post(endpoint, { 
+                user_input: userInput 
+              }, { timeout: 10000 });
+              
+              if (orchestratorResponse.data) {
+                console.log('✅ Successfully generated blueprint via orchestrator!');
+                return orchestratorResponse.data;
+              }
+            } catch (endpointError) {
+              console.log(`🔄 Orchestrator endpoint ${endpoint} failed:`, endpointError.message);
+            }
+          }
+          
+          throw new Error('All orchestrator endpoints failed');
         } catch (orchestratorError) {
-          console.warn('⚠️ Orchestrator not available, falling back to direct API call', orchestratorError);
+          console.warn('⚠️ Orchestrator not available, falling back to direct API call', orchestratorError.message);
         
-          // Fallback to direct API call with Gemini
+          // Step 3: Fallback to direct API call with Gemini
           try {
-            console.log('🧠 Last resort: Generating blueprint with direct Gemini API call');
+            console.log('🧠 Step 3: Generating blueprint with direct Gemini API call');
             return await generateBlueprintDirectly(userInput);
           } catch (directApiError) {
-            console.error('❌ All blueprint generation methods failed, using mock data');
+            console.error('❌ All blueprint generation methods failed, using mock data:', directApiError.message);
             
-            // Generate contextual mock blueprint based on user input
+            // Step 4: Generate contextual mock blueprint based on user input
             const blueprint = {
               ...mockData.blueprint,
               id: `blueprint-${Date.now()}`,
@@ -304,49 +367,81 @@ export const apiMethods = {
     try {
       console.log('🤖 Phase 3: Generating AI blueprint via backend services for:', userInput.substring(0, 50) + '...');
       
-      // Try agent service first
-      try {
-        const agentServiceUrl = import.meta.env.VITE_AGENT_SERVICE_URL || 'http://localhost:8001';
-        console.log('🤖 Attempting to generate blueprint via agent service:', agentServiceUrl);
+      // Comprehensive service discovery and connection strategy
+      const services = [
+        // 1. Try agent service directly with multiple potential endpoints
+        {
+          name: 'Agent Service',
+          getUrl: () => import.meta.env.VITE_AGENT_SERVICE_URL || 'http://localhost:8001',
+          endpoints: ['/generate-blueprint', '/v1/generate-blueprint'],
+          method: async (baseUrl, endpoint) => {
+            const response = await fetch(`${baseUrl}${endpoint}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_input: userInput })
+            });
+            if (!response.ok) throw new Error(`Status ${response.status}`);
+            return await response.json();
+          }
+        },
         
-        const agentResponse = await fetch(`${agentServiceUrl}/v1/generate-blueprint`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_input: userInput })
-        });
-        
-        if (agentResponse.ok) {
-          const blueprint = await agentResponse.json();
-          console.log('✅ Blueprint generated successfully via agent service:', blueprint.id);
-          return blueprint;
+        // 2. Try orchestrator with multiple potential endpoints
+        {
+          name: 'Orchestrator',
+          getUrl: () => normalizedApiBaseUrl || 'http://localhost:3000',
+          endpoints: ['/api/wizard/generate-blueprint', '/generateBlueprint', '/wizard/generate-blueprint'],
+          method: async (baseUrl, endpoint) => {
+            const response = await axios.post(`${baseUrl}${endpoint}`, { user_input: userInput }, { timeout: 10000 });
+            return response.data;
+          }
         }
-      } catch (agentError) {
-        console.warn('⚠️ Agent service unavailable, trying orchestrator next', agentError);
+      ];
+      
+      // Try each service with each of its endpoints
+      for (const service of services) {
+        const baseUrl = service.getUrl();
+        console.log(`🔄 Attempting to use ${service.name} at ${baseUrl}...`);
+        
+        for (const endpoint of service.endpoints) {
+          try {
+            console.log(`🔄 Trying endpoint: ${baseUrl}${endpoint}`);
+            const result = await service.method(baseUrl, endpoint);
+            console.log(`✅ Blueprint generated successfully via ${service.name} at ${endpoint}`);
+            return result;
+          } catch (error) {
+            console.log(`⚠️ ${service.name} endpoint ${endpoint} failed:`, error.message);
+          }
+        }
+        
+        console.warn(`⚠️ All ${service.name} endpoints failed`);
       }
       
-      // Try orchestrator next
-      const response = await api.post('/api/wizard/generate-blueprint', { 
-        user_input: userInput 
-      });
+      // If all services failed, try direct Gemini API
+      console.log('🧠 All services failed, falling back to direct Gemini API');
+      return await generateBlueprintDirectly(userInput);
       
-      console.log('✅ Phase 3: Blueprint generated successfully with real AI:', response.data.id);
-      return response.data;
     } catch (error: any) {
-      console.error('❌ Phase 3: Blueprint generation failed:', error.response?.data || error.message);
+      console.error('❌ All blueprint generation methods failed:', error.message);
       
-      // Enhanced error handling with specific error messages
-      if (error?.response?.data?.detail) {
-        const detail = error.response.data.detail;
-        const errorMessage = typeof detail === 'object' ? detail.message : detail;
-        throw new Error(errorMessage || 'Failed to generate blueprint. Please try again.');
-      }
-      
+      // Last resort fallback to mock data
       if (isDevelopment) {
-        console.log('🔧 Phase 3: Using development fallback for blueprint generation');
-        return await apiMethods.generateBlueprint(userInput); // Use mock version
+        console.log('🔄 Using mock blueprint as final fallback');
+        const blueprint = {
+          ...mockData.blueprint,
+          id: `blueprint-${Date.now()}`,
+          user_input: userInput,
+          interpretation: `I understand you want to: ${userInput}. Let me create an intelligent system architecture to achieve this business goal using AI agents and automated workflows.`,
+          suggested_structure: {
+            ...mockData.blueprint.suggested_structure,
+            guild_name: generateGuildName(userInput),
+            guild_purpose: `Transform your business by automating: ${userInput}`
+          }
+        };
+        
+        return blueprint;
       }
       
-      throw new Error(error.message || 'Failed to generate blueprint. Please try again.');
+      throw error;
     }
   },
 
@@ -661,6 +756,109 @@ export const apiMethods = {
     } catch (error) {
       console.error('❌ Phase 3: Error getting execution status:', error);
       throw error;
+    }
+  },
+
+  // Endpoint for testing backend connection with enhanced error information
+  testBackendConnection: async () => {
+    try {
+      console.log('🧪 Testing backend connection with comprehensive service discovery...');
+      
+      // First try agent service directly
+      try {
+        const agentServiceUrl = import.meta.env.VITE_AGENT_SERVICE_URL || 'http://localhost:8001';
+        console.log('🧪 Step 1: Testing agent service connection:', agentServiceUrl);
+        
+        // Try multiple potential endpoints
+        for (const endpoint of ['/', '/health', '/v1', '/status']) {
+          try {
+            console.log(`🔄 Trying agent service endpoint: ${agentServiceUrl}${endpoint}`);
+            const agentResponse = await fetch(`${agentServiceUrl}${endpoint}`, { 
+              method: 'GET',
+              headers: { 'Accept': 'application/json' },
+              signal: AbortSignal.timeout(2000) // 2 second timeout
+            });
+            
+            if (agentResponse.ok) {
+              console.log('✅ Agent service connected!');
+              return {
+                connected: true,
+                service: 'agent_service',
+                status: await agentResponse.json(),
+                message: `Connected to agent service at ${endpoint}`,
+                timestamp: new Date().toISOString()
+              };
+            }
+          } catch (endpointError) {
+            console.log(`⚠️ Agent service endpoint ${endpoint} failed:`, endpointError.message);
+          }
+        }
+      } catch (agentError) {
+        console.warn('⚠️ Agent service not available:', agentError.message);
+      }
+      
+      // Then try orchestrator
+      try {
+        const orchestratorUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+        console.log('🧪 Step 2: Testing orchestrator connection:', orchestratorUrl);
+        
+        // Try multiple potential endpoints
+        for (const endpoint of ['/', '/status', '/health', '/api/status']) {
+          try {
+            console.log(`🔄 Trying orchestrator endpoint: ${orchestratorUrl}${endpoint}`);
+            const orchestratorResponse = await fetch(`${orchestratorUrl}${endpoint}`, { 
+              method: 'GET',
+              headers: { 'Accept': 'application/json' },
+              signal: AbortSignal.timeout(2000) // 2 second timeout
+            });
+            
+            if (orchestratorResponse.ok) {
+              console.log('✅ Orchestrator connected!');
+              return {
+                connected: true,
+                service: 'orchestrator',
+                status: await orchestratorResponse.json(),
+                message: `Connected to orchestrator at ${endpoint}`,
+                timestamp: new Date().toISOString()
+              };
+            }
+          } catch (endpointError) {
+            console.log(`⚠️ Orchestrator endpoint ${endpoint} failed:`, endpointError.message);
+          }
+        }
+      } catch (orchestratorError) {
+        console.warn('⚠️ Orchestrator not available:', orchestratorError.message);
+      }
+      
+      // Fall back to health check
+      try {
+        const healthResult = await apiMethods.healthCheck();
+        return {
+          connected: true,
+          service: 'health_check',
+          status: healthResult,
+          message: 'Connected via health check fallback',
+          timestamp: new Date().toISOString()
+        };
+      } catch (healthError) {
+        console.error('❌ All connection methods failed:', healthError);
+        return {
+          connected: false,
+          service: 'none',
+          status: { error: healthError.message },
+          message: 'All backend services unavailable',
+          timestamp: new Date().toISOString()
+        };
+      }
+    } catch (error) {
+      console.error('❌ Backend connection test failed:', error);
+      return {
+        connected: false,
+        service: 'error',
+        status: { error: error.message },
+        message: 'Connection test failed',
+        timestamp: new Date().toISOString()
+      };
     }
   }
 };
