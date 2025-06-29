@@ -311,8 +311,30 @@ Always think strategically, act efficiently, and communicate clearly.`,
           createdAt: new Date().toISOString()
         })),
         status: 'deployed',
-      case 'custom':
+        createdAt: new Date().toISOString()
       };
+    } catch (error: any) {
+      console.error('Failed to create channel deployment:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Generate channel URL based on type
+   */
+  generateChannelUrl: (guildId: string, channelType: string): string => {
+    switch (channelType) {
+      case 'slack':
+        return `https://slack.com/app_redirect?channel=${guildId}`;
+      case 'discord':
+        return `https://discord.gg/${guildId}`;
+      case 'email':
+        return `mailto:guild-${guildId}@genesisOS.ai`;
+      case 'web':
+        return `https://genesisOS.ai/guild/${guildId}/web`;
+      case 'api':
+        return `https://api.genesisOS.ai/guild/${guildId}`;
+      case 'custom':
       default:
         return `https://genesisOS.ai/guild/${guildId}/channel/${channelType}`;
     }
