@@ -107,7 +107,7 @@ export function ConditionConfig({ data, onUpdate, onDelete, nodeId, onClose }: C
             required
           />
           <p className="text-xs text-gray-400">
-            Use JavaScript expressions like 'value &gt; 100' or 'status === "active"'
+            Use JavaScript expressions like 'value > 100' or 'status === "active"'
           </p>
         </div>
 
