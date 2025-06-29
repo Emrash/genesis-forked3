@@ -77,7 +77,7 @@ export const BlueprintStep: React.FC = () => {
 
   const handleApprove = () => {
     setIsGeneratingCanvas(true);
-    setStep('canvas-generation');
+    setStep('canvas');
   };
 
   const handleEdit = () => {
