@@ -187,49 +187,55 @@ Please provide a complete, working curl command with proper formatting, headers,
       // Comprehensive fallback to programmatic generation
       console.log('Falling back to programmatic cURL generation');
       
-      const method = apiInfo?.method || 'POST';
-      const endpoint = apiInfo?.endpoint || 'https://api.example.com/endpoint';
-      const service = apiInfo?.service || '';
-      
-      // Create service-specific curl commands
-      let curlCommand = `curl -X ${method} "${endpoint}" \\\n  -H "Content-Type: application/json"`;
-      
-      if (service) {
-        switch (service.toLowerCase()) {
-          case 'slack':
-            curlCommand = `curl -X POST "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK" \\\n  -H "Content-Type: application/json" \\\n  -d '{"text": "${description}"}'`;
-            break;
-          case 'sendgrid':
-          case 'email':
-            curlCommand = `curl -X POST "https://api.sendgrid.com/v3/mail/send" \\\n  -H "Authorization: Bearer YOUR_SENDGRID_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"personalizations": [{"to": [{"email": "recipient@example.com"}]}], "from": {"email": "sender@yourdomain.com"}, "subject": "${description}", "content": [{"type": "text/plain", "value": "Generated email content based on: ${description}"}]}'`;
-            break;
-          case 'sheets':
-          case 'google sheets':
-            curlCommand = `curl -X GET "https://sheets.googleapis.com/v4/spreadsheets/YOUR_SPREADSHEET_ID/values/Sheet1!A1:Z100" \\\n  -H "Authorization: Bearer YOUR_GOOGLE_API_KEY"`;
-            break;
-          case 'airtable':
-            curlCommand = `curl -X GET "https://api.airtable.com/v0/YOUR_BASE_ID/YOUR_TABLE_NAME" \\\n  -H "Authorization: Bearer YOUR_AIRTABLE_API_KEY"`;
-            break;
-          case 'database':
-            curlCommand = `curl -X POST "https://your-database-api.example.com/query" \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer YOUR_DB_API_KEY" \\\n  -d '{"query": "SELECT * FROM your_table WHERE condition = true"}'`;
-            break;
-          case 'api':
-            curlCommand = `curl -X GET "https://api.example.com/endpoint" \\\n  -H "Authorization: Bearer YOUR_API_KEY" \\\n  -H "Content-Type: application/json"`;
-            break;
-          default:
-            // If no recognized service, create a generic REST API call
-            curlCommand = `curl -X ${method} "${endpoint}" \\\n  -H "Authorization: Bearer YOUR_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"query": "${description.replace(/"/g, '\\"')}"}'`;
+      try {
+        const method = apiInfo?.method || 'POST';
+        const endpoint = apiInfo?.endpoint || 'https://api.example.com/endpoint';
+        const service = apiInfo?.service || '';
+        
+        // Create service-specific curl commands
+        let curlCommand = `curl -X ${method} "${endpoint}" \\\n  -H "Content-Type: application/json"`;
+        
+        if (service) {
+          switch (service.toLowerCase()) {
+            case 'slack':
+              curlCommand = `curl -X POST "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK" \\\n  -H "Content-Type: application/json" \\\n  -d '{"text": "${description}"}'`;
+              break;
+            case 'sendgrid':
+            case 'email':
+              curlCommand = `curl -X POST "https://api.sendgrid.com/v3/mail/send" \\\n  -H "Authorization: Bearer YOUR_SENDGRID_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"personalizations": [{"to": [{"email": "recipient@example.com"}]}], "from": {"email": "sender@yourdomain.com"}, "subject": "${description}", "content": [{"type": "text/plain", "value": "Generated email content based on: ${description}"}]}'`;
+              break;
+            case 'sheets':
+            case 'google sheets':
+              curlCommand = `curl -X GET "https://sheets.googleapis.com/v4/spreadsheets/YOUR_SPREADSHEET_ID/values/Sheet1!A1:Z100" \\\n  -H "Authorization: Bearer YOUR_GOOGLE_API_KEY"`;
+              break;
+            case 'airtable':
+              curlCommand = `curl -X GET "https://api.airtable.com/v0/YOUR_BASE_ID/YOUR_TABLE_NAME" \\\n  -H "Authorization: Bearer YOUR_AIRTABLE_API_KEY"`;
+              break;
+            case 'database':
+              curlCommand = `curl -X POST "https://your-database-api.example.com/query" \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer YOUR_DB_API_KEY" \\\n  -d '{"query": "SELECT * FROM your_table WHERE condition = true"}'`;
+              break;
+            case 'api':
+              curlCommand = `curl -X GET "https://api.example.com/endpoint" \\\n  -H "Authorization: Bearer YOUR_API_KEY" \\\n  -H "Content-Type: application/json"`;
+              break;
+            default:
+              // If no recognized service, create a generic REST API call
+              curlCommand = `curl -X ${method} "${endpoint}" \\\n  -H "Authorization: Bearer YOUR_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"query": "${description.replace(/"/g, '\\"')}"}'`;
+          }
+        } else {
+          // Create a body based on description
+          curlCommand += ` \\\n  -d '{"query": "${description.replace(/"/g, '\\"')}"}'`;
         }
-      } else {
-        // Create a body based on description
-        curlCommand += ` \\\n  -d '{"query": "${description.replace(/"/g, '\\"')}"}'`;
+        
+        return curlCommand;
+      } catch (fallbackError) {
+        // Final fallback for any unexpected errors
+        console.error('All curl generation methods failed:', fallbackError);
+        return `# Error generating curl command\ncurl -X POST "https://api.example.com/endpoint" \\\n  -H "Content-Type: application/json" \\\n  -d '{"query": "${description.replace(/"/g, '\\"')}"}'`;
       }
-      
-      return curlCommand;
     } catch (error) {
-      // Final fallback for any unexpected errors
-      console.error('All curl generation methods failed:', error);
-      return `# Error generating curl command\ncurl -X POST "https://api.example.com/endpoint" \\\n  -H "Content-Type: application/json" \\\n  -d '{"query": "${description.replace(/"/g, '\\"')}"}'`;
+      // This should never execute due to the inner try-catch, but keeping for safety
+      console.error('Unexpected error in generateCurlWithGemini:', error);
+      return `# Unexpected error generating curl command\ncurl -X POST "https://api.example.com/endpoint" \\\n  -H "Content-Type: application/json" \\\n  -d '{"query": "${description.replace(/"/g, '\\"')}"}'`;
     }
   }
 };
