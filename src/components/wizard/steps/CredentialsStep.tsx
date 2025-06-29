@@ -559,6 +559,7 @@ export const CredentialsStep: React.FC = () => {
 
                 <div className="mb-4 relative">
                  {key && (
+                  <>
                   <input
                     value={localCredentials[key] ?? ''}
                     onChange={(e) => handleCredentialChange(key, e.target.value)}
@@ -578,6 +579,7 @@ export const CredentialsStep: React.FC = () => {
                         <Eye className="w-5 h-5" />}
                     </button>
                   </div>
+                  </>
                  )}
                 </div>
 
