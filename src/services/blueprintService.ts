@@ -16,17 +16,20 @@ export const blueprintService = {
   generateBlueprint: async (userInput: string): Promise<Blueprint> => {
     try {
       console.log('🧠 Generating blueprint from user input:', userInput.substring(0, 50) + '...');
-
-      // Try to use agent service first
+      
+      // First try using the agent service directly
       try {
         const agentServiceUrl = import.meta.env.VITE_AGENT_SERVICE_URL || 'http://localhost:8001';
         console.log('🤖 Attempting to generate blueprint via agent service:', agentServiceUrl);
         
-        const response = await fetch(`${agentServiceUrl}/v1/generate-blueprint`, {
+        const response = await fetch(`${agentServiceUrl}/generate-blueprint`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_input: userInput })
         });
+        
+        // Log response status for debugging
+        console.log(`🔍 Agent service response status: ${response.status}`);
         
         if (response.ok) {
           const blueprint = await response.json();
@@ -38,7 +41,34 @@ export const blueprintService = {
           throw new Error(`Agent service error: ${response.status}`);
         }
       } catch (agentServiceError) {
-        console.warn('⚠️ Agent service unavailable, falling back to direct Gemini API:', agentServiceError);
+        console.warn('⚠️ Agent service unavailable, trying orchestrator next:', agentServiceError);
+        
+        // Try orchestrator API next
+        try {
+          const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+          console.log('🔄 Attempting to generate blueprint via orchestrator:', apiBaseUrl);
+          
+          const response = await fetch(`${apiBaseUrl}/api/wizard/generate-blueprint`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_input: userInput })
+          });
+          
+          // Log response status for debugging
+          console.log(`🔍 Orchestrator response status: ${response.status}`);
+          
+          if (response.ok) {
+            const blueprint = await response.json();
+            console.log('✅ Blueprint generated successfully via orchestrator:', blueprint.id);
+            return blueprint;
+          } else {
+            const errorText = await response.text();
+            console.warn('⚠️ Orchestrator response error:', response.status, errorText);
+            throw new Error(`Orchestrator error: ${response.status}`);
+          }
+        } catch (orchestratorError) {
+          console.warn('⚠️ Orchestrator unavailable, falling back to direct API call:', orchestratorError);
+        }
       }
       
       // First try to use Gemini API directly for better blueprint generation
@@ -169,10 +199,10 @@ Include specialized agents with clear roles, appropriate tools, and workflow aut
     return {
       id: `blueprint-${Date.now()}`,
       user_input: userInput,
-      interpretation: `I understand that you want to: ${userInput}. I'll create a comprehensive AI-powered system to accomplish this goal.`,
+      interpretation: `I understand that you want to: ${userInput}. I'll create a comprehensive AI-powered system to accomplish this goal using specialized AI agents and automated workflows.`,
       suggested_structure: {
         guild_name: guildName,
-        guild_purpose: `A powerful AI guild designed to ${userInput}`,
+        guild_purpose: `A powerful AI guild designed to accomplish: ${userInput}`,
         agents: [
           {
             name: "Data Analyst",
@@ -195,8 +225,8 @@ Include specialized agents with clear roles, appropriate tools, and workflow aut
         ],
         workflows: [
           {
-            name: "Weekly Performance Review",
-            description: "Analyzes weekly performance metrics and generates reports",
+            name: "Weekly Analytics Review",
+            description: "Analyzes weekly metrics and generates detailed reports",
             trigger_type: "schedule"
           },
           {

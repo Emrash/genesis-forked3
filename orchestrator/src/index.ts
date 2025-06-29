@@ -82,17 +82,52 @@ async function initializeClients() {
   }
 
   // Initialize Redis if URL is provided
-  if (redisUrl && !redisUrl.includes('your_redis') && !redisUrl.includes('localhost')) {
+  if (redisUrl && !redisUrl.includes('your_redis')) {
     try {
+      console.log('🔄 Connecting to Redis:', redisUrl.substring(0, redisUrl.indexOf('@') + 1) + '***');
       redisClient = createRedisClient({ url: redisUrl });
+      
+      // Add connection event handlers for better logging
+      redisClient.on('connect', () => console.log('✅ Redis client connected'));
+      redisClient.on('error', (err) => console.error('❌ Redis client error:', err));
+      redisClient.on('reconnecting', () => console.log('🔄 Redis client reconnecting...'));
+      
+      // Connect to Redis
       await redisClient.connect();
+      
+      // Test Redis connection
+      try {
+        await redisClient.set('orchestrator_test_key', 'connected', { EX: 60 });
+        const testResult = await redisClient.get('orchestrator_test_key');
+        if (testResult === 'connected') {
+          console.log('✅ Redis connection test successful');
+        } else {
+          console.warn('⚠️ Redis connection test failed: unexpected result');
+        }
+      } catch (testError) {
+        console.error('❌ Redis connection test failed:', testError);
+      }
+      
       console.log('✅ Redis client connected');
     } catch (error) {
       console.warn('⚠️ Redis connection failed - using in-memory cache instead');
       console.warn('⚠️ Using in-memory cache instead');
     }
   } else {
-    console.log('ℹ️ Redis not configured for development - using in-memory cache');
+    if (redisUrl.includes('localhost')) {
+      console.log('⚠️ Using localhost Redis URL. This may not work in all environments.');
+      try {
+        console.log('🔄 Attempting to connect to localhost Redis...');
+        redisClient = createRedisClient({ url: redisUrl });
+        await redisClient.connect();
+        console.log('✅ Connected to localhost Redis successfully');
+      } catch (error) {
+        console.warn('⚠️ Failed to connect to localhost Redis:', error);
+        console.log('ℹ️ Using in-memory cache instead');
+      }
+    } else {
+      console.log('ℹ️ Redis not configured - using in-memory cache');
+    }
   }
 }
 

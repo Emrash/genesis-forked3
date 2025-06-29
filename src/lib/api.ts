@@ -9,9 +9,9 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
   (isDevelopment ? 'http://localhost:3000' : 'https://genesisOS-backend-production.up.railway.app');
 
 // Gemini API configuration
-const GEMINI_API_KEY = 'AIzaSyA81SV6mvA9ShZasJgcVl4ps-YQm9DrKsc';
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
-const GEMINI_MODEL = 'gemini-2.0-flash'; // Updated to newer model that's less likely to hit rate limits
+const GEMINI_MODEL = 'gemini-1.5-flash'; // Using 1.5 to avoid rate limit issues
 
 // Remove trailing slash if present to prevent path issues
 const normalizedApiBaseUrl = API_BASE_URL.endsWith('/') 
@@ -194,7 +194,7 @@ export const apiMethods = {
   healthCheck: async () => {
     if (!hasRealBackend && isDevelopment) {
       console.log('🔧 Phase 3: Development mode - Using enhanced mock health check');
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 300));
       return {
         ...mockData.healthCheck,
         phase: "4 - AI & Automation Core",
@@ -237,140 +237,94 @@ export const apiMethods = {
   // Blueprint generation with AI integration
   generateBlueprint: async (userInput: string): Promise<any> => {
     if (!hasRealBackend && isDevelopment) {
-      console.log('🤖 Phase 3: Development mode - Trying orchestrator first before falling back...');
+      console.log('🤖 Phase 3: Development mode - Trying agent service first before falling back...');
 
-      // First try to use Gemini API directly for better blueprint generation
+      // First try to use agent service for proper backend generation
       try {
-        console.log('🧠 Generating blueprint with Gemini API directly');
-        
-        // Create a detailed system prompt for blueprint generation
-        const systemPrompt = `You are GenesisOS Blueprint Generator, an expert AI system architect specialized in designing 
-AI agent-based systems. Your role is to analyze user goals and create structured blueprints for autonomous digital workforces.
+        // First try using the agent service directly
+        const agentServiceUrl = import.meta.env.VITE_AGENT_SERVICE_URL || 'http://localhost:8001';
+        console.log('🤖 Attempting to generate blueprint via agent service:', agentServiceUrl);
 
-Your output must follow this exact JSON structure:
-{
-  "id": "blueprint-[unique_id]",
-  "user_input": "[original user input]",
-  "interpretation": "[your understanding of the user's goal]",
-  "suggested_structure": {
-    "guild_name": "[appropriate name for this guild]",
-    "guild_purpose": "[clear purpose statement]",
-    "agents": [
-      {
-        "name": "[agent name]",
-        "role": "[specific role]",
-        "description": "[detailed description]",
-        "tools_needed": ["[tool1]", "[tool2]", "..."]
-      }
-    ],
-    "workflows": [
-      {
-        "name": "[workflow name]",
-        "description": "[detailed description]",
-        "trigger_type": "[manual|schedule|webhook|event]"
-      }
-    ]
-  }
-}
-
-Create coherent, business-focused blueprints with:
-- 3-5 specialized agents with distinct roles
-- 2-3 well-defined workflows
-- Appropriate tools for each agent
-- Realistic integrations (Slack, Email, Google Sheets, etc.)`;
-
-        // Design the prompt for Gemini
-        const prompt = `Create a complete blueprint for an AI-powered digital workforce based on this user goal:
-
-"${userInput}"
-
-Design a system of intelligent AI agents working together to achieve this goal.
-Include specialized agents with clear roles, appropriate tools, and workflow automations.`;
-
-        // Call Gemini API directly
-        const response = await fetch(`${GEMINI_API_URL}/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+        const agentResponse = await fetch(`${agentServiceUrl}/v1/generate-blueprint`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{ text: prompt }]
-            }],
-            systemInstruction: {
-              parts: [{ text: systemPrompt }]
-            },
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 2048
-            }
-          })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_input: userInput })
         });
 
-        if (!response.ok) {
-          throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+        if (agentResponse.ok) {
+          const blueprint = await agentResponse.json();
+          console.log('✅ Blueprint generated successfully via agent service:', blueprint.id);
+          return blueprint;
+        } else {
+          const errorText = await agentResponse.text();
+          console.warn('⚠️ Agent service response error:', agentResponse.status, errorText);
+          throw new Error(`Agent service error: ${agentResponse.status}`);
         }
-
-        const data = await response.json();
-        const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-        // Extract JSON from the response
+      } catch (error) {
+        console.warn('⚠️ Agent service unavailable, trying orchestrator next', error);
+        
         try {
-          // Look for JSON structure in the response
-          const jsonStart = generatedText.indexOf('{');
-          const jsonEnd = generatedText.lastIndexOf('}') + 1;
-          
-          if (jsonStart >= 0 && jsonEnd > jsonStart) {
-            const jsonStr = generatedText.substring(jsonStart, jsonEnd);
-            const blueprint = JSON.parse(jsonStr);
+          // Now try the orchestrator service
+          console.log('Attempting to connect to orchestrator at', normalizedApiBaseUrl);
+          const orchestratorResponse = await api.post('/api/wizard/generate-blueprint', { 
+            user_input: userInput 
+          });
+          console.log('✅ Successfully generated blueprint via orchestrator!');
+          return orchestratorResponse.data;
+        } catch (orchestratorError) {
+          console.warn('⚠️ Orchestrator not available, falling back to direct API call', orchestratorError);
+        
+          // Fallback to direct API call with Gemini
+          try {
+            console.log('🧠 Last resort: Generating blueprint with direct Gemini API call');
+            return await generateBlueprintDirectly(userInput);
+          } catch (directApiError) {
+            console.error('❌ All blueprint generation methods failed, using mock data');
             
-            console.log('✅ Blueprint generated successfully with Gemini API');
+            // Generate contextual mock blueprint based on user input
+            const blueprint = {
+              ...mockData.blueprint,
+              id: `blueprint-${Date.now()}`,
+              user_input: userInput,
+              interpretation: `I understand you want to: ${userInput}. Let me create an intelligent system architecture to achieve this business goal using AI agents and automated workflows.`,
+              suggested_structure: {
+                ...mockData.blueprint.suggested_structure,
+                guild_name: generateGuildName(userInput),
+                guild_purpose: `Transform your business by automating: ${userInput}`
+              }
+            };
+            
+            console.log('✅ Phase 3: Using mock blueprint generator as last resort:', blueprint.id);
             return blueprint;
           }
-        } catch (jsonError) {
-          console.error('Failed to parse JSON from Gemini response:', jsonError);
         }
-
-        // If Gemini direct call fails or returns invalid JSON, try the orchestrator
-        console.log('Attempting to connect to orchestrator at', normalizedApiBaseUrl);
-        const orchestratorResponse = await api.post('/wizard/generate-blueprint', { user_input: userInput });
-        console.log('✅ Successfully connected to orchestrator!');
-        return orchestratorResponse.data;
-      } catch (error) {
-        console.log('⚠️ Orchestrator not available, using mock blueprint generator');
-        
-        // Check if we should use a specific AI model
-        const preferredModel = localStorage.getItem('preferred_ai_model');
-        console.log('🧠 Using AI model:', preferredModel || 'default (Gemini Pro)');
-        
-        // Enhanced simulation delay for realistic AI processing time
-        await new Promise(resolve => setTimeout(resolve, 2500));
-        
-        // Generate contextual mock blueprint based on user input
-        const blueprint = {
-          ...mockData.blueprint,
-          id: `blueprint-${Date.now()}`,
-          user_input: userInput,
-          interpretation: `I understand you want to: ${userInput}. Let me create an intelligent system architecture to achieve this business goal using AI agents and automated workflows.`,
-          suggested_structure: {
-            ...mockData.blueprint.suggested_structure,
-            guild_name: generateGuildName(userInput),
-            guild_purpose: `Transform your business by automating: ${userInput}`
-          }
-        };
-        
-        console.log('✅ Phase 3: Enhanced mock blueprint generated:', blueprint.id);
-        return blueprint;
       }
     }
 
     try {
-      console.log('🤖 Phase 3: Generating AI blueprint with Gemini Pro for:', userInput.substring(0, 50) + '...');
+      console.log('🤖 Phase 3: Generating AI blueprint via backend services for:', userInput.substring(0, 50) + '...');
       
-      // Check if we should use a specific AI model
-      const preferredModel = localStorage.getItem('preferred_ai_model');
-      console.log('🧠 Using AI model:', preferredModel || 'default (Gemini Pro)');
+      // Try agent service first
+      try {
+        const agentServiceUrl = import.meta.env.VITE_AGENT_SERVICE_URL || 'http://localhost:8001';
+        console.log('🤖 Attempting to generate blueprint via agent service:', agentServiceUrl);
+        
+        const agentResponse = await fetch(`${agentServiceUrl}/v1/generate-blueprint`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_input: userInput })
+        });
+        
+        if (agentResponse.ok) {
+          const blueprint = await agentResponse.json();
+          console.log('✅ Blueprint generated successfully via agent service:', blueprint.id);
+          return blueprint;
+        }
+      } catch (agentError) {
+        console.warn('⚠️ Agent service unavailable, trying orchestrator next', agentError);
+      }
       
+      // Try orchestrator next
       const response = await api.post('/api/wizard/generate-blueprint', { 
         user_input: userInput 
       });
@@ -393,6 +347,16 @@ Include specialized agents with clear roles, appropriate tools, and workflow aut
       }
       
       throw new Error(error.message || 'Failed to generate blueprint. Please try again.');
+    }
+  },
+
+  /**
+   * Generate blueprint directly using Gemini API (last resort fallback)
+   */
+  generateBlueprintDirectly: async (userInput: string): Promise<any> => {
+    try {
+      console.log('🧠 Generating blueprint with Gemini API directly');
+      return await generateBlueprintDirectly(userInput);
     }
   },
 
@@ -697,6 +661,122 @@ Include specialized agents with clear roles, appropriate tools, and workflow aut
     }
   }
 };
+
+/**
+ * Generate blueprint directly using Gemini API (private helper function)
+ * Only used as a last resort fallback when all backend services are unavailable
+ */
+async function generateBlueprintDirectly(userInput: string): Promise<any> {
+  if (!GEMINI_API_KEY) {
+    throw new Error('Gemini API key not configured for direct blueprint generation');
+  }
+  
+  // Create a detailed system prompt for blueprint generation
+  const systemPrompt = `You are GenesisOS Blueprint Generator, an expert AI system architect specialized in designing 
+AI agent-based systems. Your role is to analyze user goals and create structured blueprints for autonomous digital workforces.
+
+Your output must follow this exact JSON structure:
+{
+  "id": "blueprint-[unique_id]",
+  "user_input": "[original user input]",
+  "interpretation": "[your understanding of the user's goal]",
+  "suggested_structure": {
+    "guild_name": "[appropriate name for this guild]",
+    "guild_purpose": "[clear purpose statement]",
+    "agents": [
+      {
+        "name": "[agent name]",
+        "role": "[specific role]",
+        "description": "[detailed description]",
+        "tools_needed": ["[tool1]", "[tool2]", "..."]
+      }
+    ],
+    "workflows": [
+      {
+        "name": "[workflow name]",
+        "description": "[detailed description]",
+        "trigger_type": "[manual|schedule|webhook|event]"
+      }
+    ]
+  }
+}
+
+Create coherent, business-focused blueprints with:
+- 3-5 specialized agents with distinct roles
+- 2-3 well-defined workflows
+- Appropriate tools for each agent
+- Realistic integrations (Slack, Email, Google Sheets, etc.)`;
+
+  // Design the prompt for Gemini
+  const prompt = `Create a complete blueprint for an AI-powered digital workforce based on this user goal:
+
+"${userInput}"
+
+Design a system of intelligent AI agents working together to achieve this goal.
+Include specialized agents with clear roles, appropriate tools, and workflow automations.`;
+
+  // Call Gemini API directly
+  const response = await fetch(`${GEMINI_API_URL}/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{ text: prompt }]
+      }],
+      systemInstruction: {
+        parts: [{ text: systemPrompt }]
+      },
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 2048
+      }
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+  // Extract JSON from the response
+  const jsonStart = generatedText.indexOf('{');
+  const jsonEnd = generatedText.lastIndexOf('}') + 1;
+  
+  if (jsonStart >= 0 && jsonEnd > jsonStart) {
+    const jsonStr = generatedText.substring(jsonStart, jsonEnd);
+    try {
+      const blueprint = JSON.parse(jsonStr);
+      
+      // Generate a unique ID if not present
+      if (!blueprint.id) {
+        blueprint.id = `blueprint-${Date.now()}`;
+      }
+      
+      // Ensure user input is set
+      blueprint.user_input = userInput;
+      
+      // Add status and timestamp if not present
+      if (!blueprint.status) {
+        blueprint.status = 'pending';
+      }
+      if (!blueprint.created_at) {
+        blueprint.created_at = new Date().toISOString();
+      }
+      
+      console.log('✅ Blueprint generated successfully with direct Gemini API');
+      return blueprint;
+    } catch (jsonError) {
+      console.error('Failed to parse JSON from Gemini response:', jsonError);
+      throw new Error('Failed to parse Gemini response');
+    }
+  } else {
+    throw new Error('No valid JSON structure found in Gemini response');
+  }
+}
 
 // Helper functions with Phase 3 enhancements
 const generateGuildName = (userInput: string): string => {

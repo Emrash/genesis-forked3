@@ -91,12 +91,16 @@ export const voiceService = {
     try {
       // Try to use the real API endpoint
       console.log('🔊 Attempting to list voices via API endpoint');
+      
+      let voicesList: Voice[] = [];
+      
       try {
         const response = await api.get('/agent/voice/voices');
         
         if (response.data.voices && response.data.voices.length > 0) {
           console.log(`✅ Retrieved ${response.data.voices.length} voices from API`);
-          return response.data.voices;
+          voicesList = response.data.voices;
+          return voicesList;
         }
       } catch (error) {
         console.warn('Failed to list voices via API, using fallback:', error);
@@ -107,26 +111,49 @@ export const voiceService = {
         const agentServiceUrl = import.meta.env.VITE_AGENT_SERVICE_URL || 'http://localhost:8001';
         console.log('🔊 Attempting to list voices via agent service:', agentServiceUrl);
         
-        const response = await fetch(`${agentServiceUrl}/voice/voices`, {
-          method: 'GET'
-        });
+        // Try multiple endpoints that might work
+        const endpoints = [
+          '/voice/voices',           // Standard endpoint
+          '/v1/voice/voices',        // Versioned endpoint
+          '/api/voice/voices',       // API prefix endpoint
+          '/agent/voice/voices'      // Agent-specific endpoint
+        ];
         
-        if (response.ok) {
-          const data = await response.json();
-          if (data.voices && data.voices.length > 0) {
-            console.log(`✅ Retrieved ${data.voices.length} voices from agent service`);
-            return data.voices;
+        // Try each endpoint until one works
+        for (const endpoint of endpoints) {
+          try {
+            console.log(`🔍 Trying endpoint: ${agentServiceUrl}${endpoint}`);
+            const response = await fetch(`${agentServiceUrl}${endpoint}`, {
+              method: 'GET'
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.voices && data.voices.length > 0) {
+                console.log(`✅ Retrieved ${data.voices.length} voices from agent service via ${endpoint}`);
+                voicesList = data.voices;
+                return voicesList;
+              } else if (Array.isArray(data) && data.length > 0) {
+                // Sometimes the API returns the array directly
+                console.log(`✅ Retrieved ${data.length} voices directly from agent service via ${endpoint}`);
+                voicesList = data;
+                return voicesList;
+              }
+            } else {
+              console.warn(`Agent service endpoint ${endpoint} returned: ${response.status}`);
+            }
+          } catch (endpointError) {
+            console.warn(`Failed to connect to endpoint ${endpoint}:`, endpointError);
           }
-        } else {
-          console.warn('Agent service voice list error:', response.status);
         }
       } catch (agentServiceError) {
         console.warn('Failed to list voices via agent service:', agentServiceError);
       }
       
       // Return mock voices
-      console.log('🔊 Using mock voices');
-      return getMockVoices();
+      console.log('🔊 All voice endpoints failed - using mock voices');
+      voicesList = getMockVoices();
+      return voicesList;
     } catch (error) {
       console.error('Failed to list voices:', error);
       return getMockVoices();
@@ -261,32 +288,34 @@ function synthesizeWithBrowser(text: string): Promise<string> {
  * Get mock voices for development
  */
 function getMockVoices(): Voice[] {
+  console.log('📢 Creating mock voice list for development');
+  
   return [
     {
       voice_id: "21m00Tcm4TlvDq8ikWAM",
       name: "Rachel",
-      preview_url: undefined,
+      preview_url: "https://example.com/voices/rachel-preview.mp3",
       category: "premade",
       description: "A friendly and professional female voice"
     },
     {
       voice_id: "AZnzlk1XvdvUeBnXmlld",
       name: "Domi",
-      preview_url: undefined,
+      preview_url: "https://example.com/voices/domi-preview.mp3",
       category: "premade",
       description: "An authoritative and clear male voice"
     },
     {
       voice_id: "EXAVITQu4vr4xnSDxMaL",
       name: "Bella",
-      preview_url: undefined,
+      preview_url: "https://example.com/voices/bella-preview.mp3",
       category: "premade",
       description: "A warm and engaging female voice"
     },
     {
       voice_id: "ErXwobaYiN019PkySvjV",
       name: "Antoni",
-      preview_url: undefined,
+      preview_url: "https://example.com/voices/antoni-preview.mp3",
       category: "premade",
       description: "A confident and articulate male voice"
     }
