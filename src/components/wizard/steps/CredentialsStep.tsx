@@ -19,6 +19,8 @@ export const CredentialsStep: React.FC = () => {
   const [curlCommands, setCurlCommands] = useState<Record<string, string>>({});
   const [testingApi, setTestingApi] = useState<Record<string, boolean>>({});
   const [testResults, setTestResults] = useState<Record<string, any>>({});
+  const [testingApi, setTestingApi] = useState<Record<string, boolean>>({});
+  const [testResults, setTestResults] = useState<Record<string, any>>({});
 
   // Generate required credentials based on blueprint
   const getRequiredCredentials = () => {

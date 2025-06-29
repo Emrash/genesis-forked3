@@ -23,5 +23,3 @@ import { CanvasEdge } from '../../../types/canvas';
 export const EnhancedCanvasStep: React.FC = () => {
   const { blueprint, setStep } = useWizardStore();
   
-  return null;
-};
