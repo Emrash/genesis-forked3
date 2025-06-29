@@ -127,7 +127,7 @@ const mapTriggerTypeToActionType = (triggerType: string): ActionNodeData['action
     'manual': 'notification',
     'event': 'webhook',
   };
-  return mapping[triggerType as keyof typeof mapping] || 'api';
+  return (mapping[triggerType as keyof typeof mapping] as ActionNodeData['actionType']) || 'api';
 };
 
 /**
@@ -345,6 +345,19 @@ export const canvasService = {
         logs: [
           { level: 'info', message: 'Execution started', timestamp: new Date(Date.now() - 5000).toISOString() },
           { level: 'info', message: 'Execution completed successfully', timestamp: new Date().toISOString() }
+        ]
+      };
+    } catch (error) {
+      console.error('❌ Error in getExecutionStatus:', error);
+      return {
+        id: executionId,
+        status: 'unknown',
+        progress: 0,
+        startTime: null,
+        endTime: null,
+        nodes: {},
+        logs: [
+          { level: 'error', message: 'Failed to retrieve execution status', timestamp: new Date().toISOString() }
         ]
       };
     }
