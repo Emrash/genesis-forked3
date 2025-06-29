@@ -357,6 +357,9 @@ export const apiMethods = {
     try {
       console.log('🧠 Generating blueprint with Gemini API directly');
       return await generateBlueprintDirectly(userInput);
+    } catch (error: any) {
+      console.error('❌ Direct blueprint generation failed:', error.message);
+      throw new Error(error.message || 'Failed to generate blueprint directly.');
     }
   },
 
