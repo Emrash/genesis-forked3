@@ -171,19 +171,19 @@ export const DeploymentStep: React.FC = () => {
           <div className="space-y-8">
             {activeView === 'deploy' && (
               <GlassCard variant="medium" className="p-6">
-                <div className="flex items-center mb-6">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center mr-4">
-                    <Rocket className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-white text-xl font-bold">
-                      {blueprint?.suggested_structure.guild_name}
-                    </h2>
-                    <p className="text-gray-300">
-                      Guild ID: {deploymentId}
-                    </p>
-                  </div>
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center mr-4">
+                  <Rocket className="w-6 h-6 text-white" />
                 </div>
+                <div>
+                  <h2 className="text-white text-xl font-bold">
+                    {blueprint?.suggested_structure.guild_name}
+                  </h2>
+                  <p className="text-gray-300">
+                    Guild ID: {deploymentId}
+                  </p>
+                </div>
+              </div>
               </GlassCard>
             )}
 
