@@ -131,6 +131,50 @@ const mapTriggerTypeToActionType = (triggerType: string): ActionNodeData['action
 };
 
 /**
+ * Helper function to attempt canvas generation via orchestrator services
+ */
+const tryCanvasGeneration = async (blueprint: Blueprint): Promise<{ nodes: Node<NodeData>[], edges: CanvasEdge[] } | null> => {
+  const orchestratorUrls = [
+    import.meta.env.VITE_API_BASE_URL,
+    'http://localhost:3000',
+    'http://127.0.0.1:3000'
+  ].filter(Boolean);
+  
+  // Try multiple orchestrator URLs and endpoints
+  for (const baseUrl of orchestratorUrls) {
+    const endpoints = [
+      '/api/canvas/generate',
+      '/generateCanvas',
+      '/canvas/generate'
+    ];
+    
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`🎨 Attempting to generate canvas via ${baseUrl}${endpoint}`);
+        
+        const response = await axios.post(`${baseUrl}${endpoint}`, { blueprint }, {
+          timeout: 10000,
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.data && response.data.nodes) {
+          console.log(`✅ Canvas generated successfully via ${baseUrl}${endpoint}:`, {
+            nodes: response.data.nodes.length,
+            edges: response.data.edges.length
+          });
+          return response.data;
+        }
+      } catch (error: any) {
+        console.warn(`⚠️ Canvas generation failed at ${baseUrl}${endpoint}:`, 
+          error.response?.status || error.message);
+      }
+    }
+  }
+  
+  return null;
+};
+
+/**
  * Service for managing canvas operations
  */
 export const canvasService = {
@@ -140,47 +184,14 @@ export const canvasService = {
   generateCanvasFromBlueprint: async (blueprint: Blueprint): Promise<{ nodes: Node<NodeData>[], edges: CanvasEdge[] }> => {
     console.log('🎨 Generating canvas from blueprint:', blueprint.id);
     
-    // Enhanced service discovery to find the best available service
-    const orchestratorUrls = [
-      import.meta.env.VITE_API_BASE_URL,
-      'http://localhost:3000',
-      'http://127.0.0.1:3000'
-    ].filter(Boolean);
-    
     try {
-      // Try multiple orchestrator URLs and endpoints
-      for (const baseUrl of orchestratorUrls) {
-        const endpoints = [
-          '/api/canvas/generate',
-          '/generateCanvas',
-          '/canvas/generate'
-        ];
-        
-        for (const endpoint of endpoints) {
-          try {
-            console.log(`🎨 Attempting to generate canvas via ${baseUrl}${endpoint}`);
-            
-            const response = await axios.post(`${baseUrl}${endpoint}`, { blueprint }, {
-              timeout: 10000,
-              headers: { 'Content-Type': 'application/json' }
-            });
-            
-            if (response.data && response.data.nodes) {
-              console.log(`✅ Canvas generated successfully via ${baseUrl}${endpoint}:`, {
-                nodes: response.data.nodes.length,
-                edges: response.data.edges.length
-              });
-              return response.data;
-            }
-          } catch (error: any) {
-            console.warn(`⚠️ Canvas generation failed at ${baseUrl}${endpoint}:`, 
-              error.response?.status || error.message);
-          }
-        }
+      // Try to generate canvas via orchestrator services
+      const orchestratorResult = await tryCanvasGeneration(blueprint);
+      if (orchestratorResult) {
+        return orchestratorResult;
       }
 
       console.warn('⚠️ All orchestrator services unavailable, falling back to client-side generation');
-      // Fall back to client-side generation if orchestrator is unavailable
       return generateCanvasLocally(blueprint);
     } catch (error) {
       console.error('❌ Canvas generation failed completely:', error);
