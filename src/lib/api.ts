@@ -266,6 +266,7 @@ export const apiMethods = {
         try {
           // Now try the orchestrator service
           console.log('Attempting to connect to orchestrator at', normalizedApiBaseUrl);
+          const orchestratorResponse = await api.post('/api/wizard/generate-blueprint', { 
             user_input: userInput 
           });
           console.log('✅ Successfully generated blueprint via orchestrator!');
