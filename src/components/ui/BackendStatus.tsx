@@ -12,13 +12,17 @@ export const BackendStatus: React.FC<BackendStatusProps> = ({ className = '' }) 
   const [latency, setLatency] = useState<number>(0);
   const [lastCheck, setLastCheck] = useState<Date>(new Date());
   const [mode, setMode] = useState<string>('');
+  const [availableServices, setAvailableServices] = useState<string[]>([]);
+  const [activeService, setActiveService] = useState<string>('');
   const [suggestedUrl, setSuggestedUrl] = useState<string>('');
   const [isMinimized, setIsMinimized] = useState(true); // Start minimized by default
   const [showDetails, setShowDetails] = useState(false);
   const [phase, setPhase] = useState<string>('1');
+  const [connectionAttempts, setConnectionAttempts] = useState(0);
 
   const checkConnection = async () => {
     setStatus('testing');
+    setConnectionAttempts(prev => prev + 1);
     console.log("Checking backend connection...");
 
     try {
@@ -26,6 +30,9 @@ export const BackendStatus: React.FC<BackendStatusProps> = ({ className = '' }) 
       
       if (result.connected) {
         // Phase 3: Enhanced status detection
+        setAvailableServices(result.status.availableServices || []);
+        setActiveService(result.status.activeService || '');
+        
         if (result.status.phase === "3" || 
             result.status.phase === "3 - Backend Integration" ||
             result.status.phase === "4" ||
@@ -36,6 +43,12 @@ export const BackendStatus: React.FC<BackendStatusProps> = ({ className = '' }) 
         if (result.status.mode === 'development' || result.status.status === 'development_fallback') {
           setStatus('development');
           setMode(result.status.phase || 'Development Mode');
+          if (result.status.availableServices?.length > 0) {
+            setAvailableServices(result.status.availableServices);
+          }
+          if (result.status.activeService) {
+            setActiveService(result.status.activeService);
+          }
         } else {
           setStatus('connected');
           setMode('Production');
@@ -259,6 +272,11 @@ export const BackendStatus: React.FC<BackendStatusProps> = ({ className = '' }) 
             <div className="mt-1 text-xs text-gray-500 break-all">
               {suggestedUrl}
             </div>
+            {connectionAttempts > 3 && (
+              <div className="mt-2 text-sm font-medium">
+                Try starting the Orchestrator service with: <code className="bg-gray-100 px-1 py-0.5 rounded">npm run orchestrator:dev</code>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -275,8 +293,21 @@ export const BackendStatus: React.FC<BackendStatusProps> = ({ className = '' }) 
             <div className="text-white/80 space-y-1">
               <div>Last check: {lastCheck.toLocaleTimeString()}</div>
               <div>Phase: {phase} {phase === '3' ? '(Backend Integration)' : '(Intent Engine)'}</div>
+              <div>Connection attempts: {connectionAttempts}</div>
               <div>Protocol: {window.location.protocol}</div>
               <div>Host: {window.location.host}</div>
+              {availableServices.length > 0 && (
+                <div className="mt-2">
+                  <div className="text-blue-400">Available Services:</div>
+                  <ul className="list-disc list-inside text-xs">
+                    {availableServices.map((service, index) => (
+                      <li key={index} className={activeService === service ? "text-green-400" : ""}>
+                        {service} {activeService === service && "(active)"}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {status === 'development' && (
                 <div className="text-blue-400 mt-2 flex items-center">
                   <Wrench className="w-3 h-3 inline mr-1" />
