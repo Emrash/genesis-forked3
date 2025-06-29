@@ -16,7 +16,8 @@ import {
   Download,
   Users,
   ArrowRight,
-  ChevronRight
+  ChevronRight,
+  Activity
 } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 import { HolographicButton } from '../ui/HolographicButton';

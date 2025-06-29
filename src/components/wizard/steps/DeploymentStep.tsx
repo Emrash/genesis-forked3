@@ -210,7 +210,7 @@ export const DeploymentStep: React.FC = () => {
               <div>
               <ChannelMonitor
                 guildId={deploymentId}
-                channelId={null}
+                channelId={undefined}
               />
             </div>
           )}

@@ -231,6 +231,7 @@ Always think strategically, act efficiently, and communicate clearly.`,
       
       // For development, return a mock status
       return {
+        channels: true,
         id: deploymentId,
         status: 'deployed',
         progress: 100,
@@ -346,6 +347,7 @@ export interface DeploymentResult {
  * Deployment status
  */
 export interface DeploymentStatus {
+  channels: boolean;
   id: string;
   status: string;
   progress: number;

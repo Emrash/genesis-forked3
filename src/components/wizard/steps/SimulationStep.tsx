@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Play, CheckCircle, AlertCircle, ArrowRight, Brain, Zap, Clock, Settings, Cpu, Beaker } from 'lucide-react';
+import { Play, CheckCircle, AlertCircle, ArrowRight, Brain, Zap, Clock, Settings, Cpu, Beaker, RefreshCw } from 'lucide-react';
 import { useWizardStore } from '../../../stores/wizardStore';
 import { GlassCard } from '../../ui/GlassCard';
 import { EnhancedSimulationLab } from '../../simulation/EnhancedSimulationLab';
@@ -97,6 +97,9 @@ export const SimulationStep: React.FC = () => {
     setStep('deployment');
   };
   const hasValidCredentials = Object.keys(credentials).length > 0;
+
+  // Extract agents from blueprint for use in JSX
+  const agents = blueprint?.suggested_structure.agents || [];
   
   // When the model changes, store it in localStorage for system-wide use
   useEffect(() => {

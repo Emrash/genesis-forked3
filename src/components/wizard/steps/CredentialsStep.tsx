@@ -20,12 +20,10 @@ import { useWizardStore } from '../../../stores/wizardStore';
 import { GlassCard } from '../../ui/GlassCard';
 import { HolographicButton } from '../../ui/HolographicButton';
 import { apiService } from '../../../services/apiService';
-import { credentialService } from '../../../services/credentialService';
 import { VoiceSelector } from '../../voice/VoiceSelector';
-import { voiceService } from '../../../services/voiceService';
 
 export const CredentialsStep: React.FC = () => {
-  const { step, nextStep, setStep, credentials: storeCredentials, setCredentials: setStoreCredentials } = useWizardStore();
+  const { step, setStep, credentials: storeCredentials, setCredentials: setStoreCredentials } = useWizardStore();
   const [credentials, setCredentials] = useState<{[key: string]: string}>(storeCredentials || {});
   const [showCredentials, setShowCredentials] = useState<{[key: string]: boolean}>({});
   const [curlCommands, setCurlCommands] = useState<{[key: string]: string}>({});

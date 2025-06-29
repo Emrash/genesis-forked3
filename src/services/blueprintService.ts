@@ -1,10 +1,6 @@
 import { Blueprint } from '../types';
-import { apiMethods } from '../lib/api';
 
 // Gemini API configuration
-const GEMINI_API_KEY = 'AIzaSyA81SV6mvA9ShZasJgcVl4ps-YQm9DrKsc';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
-const GEMINI_MODEL = 'gemini-1.5-flash'; // Using flash model to avoid rate limits
 
 /**
  * Service for handling blueprint operations

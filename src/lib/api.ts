@@ -292,7 +292,7 @@ export const apiMethods = {
               break;
             }
           } catch (endpointError) {
-            console.log(`🔄 Endpoint ${endpoint} failed:`, endpointError.message);
+            console.log(`🔄 Endpoint ${endpoint} failed:`, (endpointError && typeof endpointError === 'object' && 'message' in endpointError) ? (endpointError as any).message : String(endpointError));
           }
         }
         
@@ -303,7 +303,12 @@ export const apiMethods = {
         
         throw new Error('All agent service endpoints failed');
       } catch (agentServiceError) {
-        console.warn('⚠️ Agent service unavailable, trying orchestrator next:', agentServiceError.message);
+        console.warn(
+          '⚠️ Agent service unavailable, trying orchestrator next:',
+          agentServiceError && typeof agentServiceError === 'object' && 'message' in agentServiceError
+            ? (agentServiceError as any).message
+            : String(agentServiceError)
+        );
         
         // Step 2: Try the orchestrator service
         try {
@@ -329,20 +334,35 @@ export const apiMethods = {
                 return orchestratorResponse.data;
               }
             } catch (endpointError) {
-              console.log(`🔄 Orchestrator endpoint ${endpoint} failed:`, endpointError.message);
+              console.log(
+                `🔄 Orchestrator endpoint ${endpoint} failed:`,
+                endpointError && typeof endpointError === 'object' && 'message' in endpointError
+                  ? (endpointError as any).message
+                  : String(endpointError)
+              );
             }
           }
           
           throw new Error('All orchestrator endpoints failed');
         } catch (orchestratorError) {
-          console.warn('⚠️ Orchestrator not available, falling back to direct API call', orchestratorError.message);
+          console.warn(
+            '⚠️ Orchestrator not available, falling back to direct API call',
+            orchestratorError && typeof orchestratorError === 'object' && 'message' in orchestratorError
+              ? (orchestratorError as any).message
+              : String(orchestratorError)
+          );
         
           // Step 3: Fallback to direct API call with Gemini
           try {
             console.log('🧠 Step 3: Generating blueprint with direct Gemini API call');
             return await generateBlueprintDirectly(userInput);
           } catch (directApiError) {
-            console.error('❌ All blueprint generation methods failed, using mock data:', directApiError.message);
+            console.error(
+              '❌ All blueprint generation methods failed, using mock data:',
+              directApiError && typeof directApiError === 'object' && 'message' in directApiError
+                ? (directApiError as any).message
+                : String(directApiError)
+            );
             
             // Step 4: Generate contextual mock blueprint based on user input
             const blueprint = {
@@ -368,13 +388,21 @@ export const apiMethods = {
       console.log('🤖 Phase 3: Generating AI blueprint via backend services for:', userInput.substring(0, 50) + '...');
       
       // Comprehensive service discovery and connection strategy
-      const services = [
+      // Define the ServiceDefinition type
+      type ServiceDefinition = {
+        name: string;
+        getUrl: () => string;
+        endpoints: string[];
+        method: (baseUrl: string, endpoint: string) => Promise<any>;
+      };
+
+      const services: ServiceDefinition[] = [
         // 1. Try agent service directly with multiple potential endpoints
         {
           name: 'Agent Service',
-          getUrl: () => import.meta.env.VITE_AGENT_SERVICE_URL || 'http://localhost:8001',
+          getUrl: (): string => import.meta.env.VITE_AGENT_SERVICE_URL || 'http://localhost:8001',
           endpoints: ['/generate-blueprint', '/v1/generate-blueprint'],
-          method: async (baseUrl, endpoint) => {
+          method: async (baseUrl: string, endpoint: string): Promise<any> => {
             const response = await fetch(`${baseUrl}${endpoint}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -384,7 +412,6 @@ export const apiMethods = {
             return await response.json();
           }
         },
-        
         // 2. Try orchestrator with multiple potential endpoints
         {
           name: 'Orchestrator',
@@ -409,7 +436,12 @@ export const apiMethods = {
             console.log(`✅ Blueprint generated successfully via ${service.name} at ${endpoint}`);
             return result;
           } catch (error) {
-            console.log(`⚠️ ${service.name} endpoint ${endpoint} failed:`, error.message);
+            console.log(
+              `⚠️ ${service.name} endpoint ${endpoint} failed:`,
+              error && typeof error === 'object' && 'message' in error
+                ? (error as any).message
+                : String(error)
+            );
           }
         }
         
@@ -790,11 +822,21 @@ export const apiMethods = {
               };
             }
           } catch (endpointError) {
-            console.log(`⚠️ Agent service endpoint ${endpoint} failed:`, endpointError.message);
+            console.log(
+              `⚠️ Agent service endpoint ${endpoint} failed:`,
+              endpointError && typeof endpointError === 'object' && 'message' in endpointError
+                ? (endpointError as any).message
+                : String(endpointError)
+            );
           }
         }
       } catch (agentError) {
-        console.warn('⚠️ Agent service not available:', agentError.message);
+        console.warn(
+          '⚠️ Agent service not available:',
+          agentError && typeof agentError === 'object' && 'message' in agentError
+            ? (agentError as any).message
+            : String(agentError)
+        );
       }
       
       // Then try orchestrator
@@ -823,11 +865,21 @@ export const apiMethods = {
               };
             }
           } catch (endpointError) {
-            console.log(`⚠️ Orchestrator endpoint ${endpoint} failed:`, endpointError.message);
+            console.log(
+              `⚠️ Orchestrator endpoint ${endpoint} failed:`,
+              endpointError && typeof endpointError === 'object' && 'message' in endpointError
+                ? (endpointError as any).message
+                : String(endpointError)
+            );
           }
         }
       } catch (orchestratorError) {
-        console.warn('⚠️ Orchestrator not available:', orchestratorError.message);
+        console.warn(
+          '⚠️ Orchestrator not available:',
+          orchestratorError && typeof orchestratorError === 'object' && 'message' in orchestratorError
+            ? (orchestratorError as any).message
+            : String(orchestratorError)
+        );
       }
       
       // Fall back to health check
@@ -845,7 +897,7 @@ export const apiMethods = {
         return {
           connected: false,
           service: 'none',
-          status: { error: healthError.message },
+          status: { error: (healthError && typeof healthError === 'object' && 'message' in healthError) ? (healthError as any).message : String(healthError) },
           message: 'All backend services unavailable',
           timestamp: new Date().toISOString()
         };
@@ -855,7 +907,7 @@ export const apiMethods = {
       return {
         connected: false,
         service: 'error',
-        status: { error: error.message },
+        status: { error: (error && typeof error === 'object' && 'message' in error) ? (error as any).message : String(error) },
         message: 'Connection test failed',
         timestamp: new Date().toISOString()
       };

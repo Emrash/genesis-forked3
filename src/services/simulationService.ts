@@ -42,7 +42,6 @@ export const simulationService = {
     try {
       // Try to use the orchestrator API
       const response = await api.post('/api/simulation/run', {
-        guild_id: guildId,
         ...config
       });
       
@@ -82,7 +81,6 @@ export const simulationService = {
               console.log(`🔄 Attempting to run simulation via ${baseUrl}${endpoint}`);
               
               const response = await axios.post(`${baseUrl}${endpoint}`, {
-                guild_id: guildId,
                 ...config
               }, { 
                 timeout: 10000,
@@ -445,6 +443,9 @@ function generateMockSimulationResults(guildId: string, config: any): Simulation
     }
   }
   
+  // Ensure insights is a flat string array
+  const flatInsights: string[] = Array.isArray(insights[0]) ? ((insights as unknown as string[][]).flat() as unknown as string[]) : (insights as unknown as string[]);
+
   // Create the full simulation result
   const result = {
     id: simulationId || `sim-${uuid()}`,
@@ -452,7 +453,7 @@ function generateMockSimulationResults(guildId: string, config: any): Simulation
     overall_success: true,
     execution_time: executionTime,
     agent_responses: agentResponses,
-    insights,
+    insights: flatInsights,
     workflow_metrics: workflowMetrics,
     recommendations,
     created_at: new Date().toISOString()

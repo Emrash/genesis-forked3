@@ -25,8 +25,10 @@ export const BlueprintStep: React.FC = () => {
 
   // Save edited blueprint
   const handleSaveEdit = () => {
-    updateBlueprint(editedBlueprint);
-    setEditMode(false);
+    if (editedBlueprint) {
+      updateBlueprint(editedBlueprint);
+      setEditMode(false);
+    }
   };
 
   // Cancel editing
@@ -45,34 +47,42 @@ export const BlueprintStep: React.FC = () => {
 
   // Update agent in edited blueprint
   const handleUpdateAgent = (index: number, field: string, value: any) => {
+    if (!editedBlueprint) return;
     const updatedAgents = [...editedBlueprint.suggested_structure.agents];
     updatedAgents[index] = {
       ...updatedAgents[index],
       [field]: value
     };
-    setEditedBlueprint((prev: { suggested_structure: any; }) => ({
-      ...prev,
-      suggested_structure: {
-        ...prev.suggested_structure,
-        agents: updatedAgents
-      }
-    }));
+    setEditedBlueprint((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        suggested_structure: {
+          ...prev.suggested_structure,
+          agents: updatedAgents
+        }
+      };
+    });
   };
 
   // Update workflow in edited blueprint
   const handleUpdateWorkflow = (index: number, field: string, value: any) => {
+    if (!editedBlueprint) return;
     const updatedWorkflows = [...editedBlueprint.suggested_structure.workflows];
     updatedWorkflows[index] = {
       ...updatedWorkflows[index],
       [field]: value
     };
-    setEditedBlueprint((prev: { suggested_structure: any; }) => ({
-      ...prev,
-      suggested_structure: {
-        ...prev.suggested_structure,
-        workflows: updatedWorkflows
-      }
-    }));
+    setEditedBlueprint((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        suggested_structure: {
+          ...prev.suggested_structure,
+          workflows: updatedWorkflows
+        }
+      };
+    });
   };
 
   const handleApprove = () => {
@@ -210,28 +220,34 @@ export const BlueprintStep: React.FC = () => {
                   <label className="block text-sm text-gray-400 mb-1">Guild Name</label>
                   <input
                     type="text"
-                    value={editedBlueprint.suggested_structure.guild_name}
-                    onChange={(e) => setEditedBlueprint((prev: { suggested_structure: any; }) => ({
-                      ...prev,
-                      suggested_structure: {
-                        ...prev.suggested_structure,
-                        guild_name: e.target.value
-                      }
-                    }))}
+                    value={editedBlueprint?.suggested_structure.guild_name ?? ""}
+                    onChange={(e) => setEditedBlueprint((prev) => {
+                      if (!prev) return prev;
+                      return {
+                        ...prev,
+                        suggested_structure: {
+                          ...prev.suggested_structure,
+                          guild_name: e.target.value
+                        }
+                      };
+                    })}
                     className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Guild Purpose</label>
                   <textarea
-                    value={editedBlueprint.suggested_structure.guild_purpose}
-                    onChange={(e) => setEditedBlueprint((prev: { suggested_structure: any; }) => ({
-                      ...prev,
-                      suggested_structure: {
-                        ...prev.suggested_structure,
-                        guild_purpose: e.target.value
-                      }
-                    }))}
+                    value={editedBlueprint?.suggested_structure.guild_purpose ?? ""}
+                    onChange={(e) => setEditedBlueprint((prev) => {
+                      if (!prev) return prev;
+                      return {
+                        ...prev,
+                        suggested_structure: {
+                          ...prev.suggested_structure,
+                          guild_purpose: e.target.value
+                        }
+                      };
+                    })}
                     rows={3}
                     className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
@@ -278,7 +294,7 @@ export const BlueprintStep: React.FC = () => {
                             <label className="block text-sm text-gray-400 mb-1">Agent Name</label>
                             <input
                               type="text"
-                              value={editedBlueprint.suggested_structure.agents[index].name}
+                              value={editedBlueprint?.suggested_structure.agents[index].name ?? ""}
                               onChange={(e) => handleUpdateAgent(index, 'name', e.target.value)}
                               className="w-full p-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                             />
@@ -287,7 +303,7 @@ export const BlueprintStep: React.FC = () => {
                             <label className="block text-sm text-gray-400 mb-1">Role</label>
                             <input
                               type="text"
-                              value={editedBlueprint.suggested_structure.agents[index].role}
+                              value={editedBlueprint?.suggested_structure.agents[index].role ?? ""}
                               onChange={(e) => handleUpdateAgent(index, 'role', e.target.value)}
                               className="w-full p-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                             />
@@ -295,7 +311,7 @@ export const BlueprintStep: React.FC = () => {
                           <div>
                             <label className="block text-sm text-gray-400 mb-1">Description</label>
                             <textarea
-                              value={editedBlueprint.suggested_structure.agents[index].description}
+                              value={editedBlueprint?.suggested_structure.agents[index].description ?? ""}
                               onChange={(e) => handleUpdateAgent(index, 'description', e.target.value)}
                               rows={3}
                               className="w-full p-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -304,31 +320,33 @@ export const BlueprintStep: React.FC = () => {
                           <div>
                             <label className="block text-sm text-gray-400 mb-1">Tools</label>
                             <div className="space-y-2">
-                              {editedBlueprint.suggested_structure.agents[index].tools_needed.map((tool: string, toolIndex: number) => (
-                                <div key={toolIndex} className="flex items-center space-x-2">
-                                  <input
-                                    type="text"
-                                    value={tool}
-                                    onChange={(e) => {
-                                      const updatedTools = [...editedBlueprint.suggested_structure.agents[index].tools_needed];
-                                      updatedTools[toolIndex] = e.target.value;
-                                      handleUpdateAgent(index, 'tools_needed', updatedTools);
-                                    }}
-                                    className="flex-1 p-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                  />
-                                  <button
-                                    onClick={() => {
-                                      const updatedTools = editedBlueprint.suggested_structure.agents[index].tools_needed.filter((_: any, i: number) => i !== toolIndex);
-                                      handleUpdateAgent(index, 'tools_needed', updatedTools);
-                                    }}
-                                    className="p-1 bg-red-500/20 rounded-full hover:bg-red-500/30"
-                                  >
-                                    <span className="text-red-400 text-xs">✕</span>
-                                  </button>
-                                </div>
-                              ))}
+                              {editedBlueprint &&
+                                editedBlueprint.suggested_structure.agents[index].tools_needed.map((tool: string, toolIndex: number) => (
+                                  <div key={toolIndex} className="flex items-center space-x-2">
+                                    <input
+                                      type="text"
+                                      value={tool}
+                                      onChange={(e) => {
+                                        const updatedTools = [...editedBlueprint.suggested_structure.agents[index].tools_needed];
+                                        updatedTools[toolIndex] = e.target.value;
+                                        handleUpdateAgent(index, 'tools_needed', updatedTools);
+                                      }}
+                                      className="flex-1 p-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    />
+                                    <button
+                                      onClick={() => {
+                                        const updatedTools = editedBlueprint.suggested_structure.agents[index].tools_needed.filter((_: any, i: number) => i !== toolIndex);
+                                        handleUpdateAgent(index, 'tools_needed', updatedTools);
+                                      }}
+                                      className="p-1 bg-red-500/20 rounded-full hover:bg-red-500/30"
+                                    >
+                                      <span className="text-red-400 text-xs">✕</span>
+                                    </button>
+                                  </div>
+                                ))}
                               <button
                                 onClick={() => {
+                                  if (!editedBlueprint) return;
                                   const updatedTools = [...editedBlueprint.suggested_structure.agents[index].tools_needed, "New Tool"];
                                   handleUpdateAgent(index, 'tools_needed', updatedTools);
                                 }}
@@ -378,13 +396,16 @@ export const BlueprintStep: React.FC = () => {
                           description: "Describe this agent's responsibilities and capabilities",
                           tools_needed: ["Tool 1", "Tool 2"]
                         };
-                        setEditedBlueprint((prev: { suggested_structure: { agents: any; }; }) => ({
-                          ...prev,
-                          suggested_structure: {
-                            ...prev.suggested_structure,
-                            agents: [...prev.suggested_structure.agents, newAgent]
-                          }
-                        }));
+                        setEditedBlueprint((prev) => {
+                          if (!prev) return null;
+                          return {
+                            ...prev,
+                            suggested_structure: {
+                              ...prev.suggested_structure,
+                              agents: [...prev.suggested_structure.agents, newAgent]
+                            }
+                          };
+                        });
                       }}
                       className="w-full p-3 border border-dashed border-purple-500/50 rounded-lg text-purple-400 hover:bg-purple-500/10 transition-colors"
                     >
@@ -423,7 +444,7 @@ export const BlueprintStep: React.FC = () => {
                             <label className="block text-sm text-gray-400 mb-1">Workflow Name</label>
                             <input
                               type="text"
-                              value={editedBlueprint.suggested_structure.workflows[index].name}
+                              value={editedBlueprint?.suggested_structure.workflows[index].name ?? ""}
                               onChange={(e) => handleUpdateWorkflow(index, 'name', e.target.value)}
                               className="w-full p-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                             />
@@ -431,7 +452,7 @@ export const BlueprintStep: React.FC = () => {
                           <div>
                             <label className="block text-sm text-gray-400 mb-1">Description</label>
                             <textarea
-                              value={editedBlueprint.suggested_structure.workflows[index].description}
+                              value={editedBlueprint?.suggested_structure.workflows[index].description ?? ""}
                               onChange={(e) => handleUpdateWorkflow(index, 'description', e.target.value)}
                               rows={3}
                               className="w-full p-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -440,7 +461,7 @@ export const BlueprintStep: React.FC = () => {
                           <div>
                             <label className="block text-sm text-gray-400 mb-1">Trigger Type</label>
                             <select
-                              value={editedBlueprint.suggested_structure.workflows[index].trigger_type}
+                              value={editedBlueprint?.suggested_structure.workflows[index].trigger_type ?? ""}
                               onChange={(e) => handleUpdateWorkflow(index, 'trigger_type', e.target.value)}
                               className="w-full p-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                             >
@@ -483,13 +504,16 @@ export const BlueprintStep: React.FC = () => {
                           description: "Describe this workflow's function and purpose",
                           trigger_type: "manual"
                         };
-                        setEditedBlueprint((prev: { suggested_structure: { workflows: any; }; }) => ({
-                          ...prev,
-                          suggested_structure: {
-                            ...prev.suggested_structure,
-                            workflows: [...prev.suggested_structure.workflows, newWorkflow]
-                          }
-                        }));
+                        setEditedBlueprint((prev) => {
+                          if (!prev) return null;
+                          return {
+                            ...prev,
+                            suggested_structure: {
+                              ...prev.suggested_structure,
+                              workflows: [...prev.suggested_structure.workflows, newWorkflow]
+                            }
+                          };
+                        });
                       }}
                       className="w-full p-3 border border-dashed border-emerald-500/50 rounded-lg text-emerald-400 hover:bg-emerald-500/10 transition-colors"
                     >

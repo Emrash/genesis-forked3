@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config();
-import express from 'express';
+import express, { response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -20,6 +20,7 @@ import analyticsService from './services/analyticsService';
 import voiceService from './services/voiceService';
 import videoService from './services/videoService';
 import communicationService from './services/communicationService';
+import { error } from 'console';
 
 // Configure rate limiting
 const apiLimiter = rateLimit({
@@ -701,13 +702,18 @@ app.post(['/generateBlueprint', '/wizard/generate-blueprint', '/api/wizard/gener
               headers: { 'Content-Type': 'application/json' }
             });
             
-                  error.response?.status || (error instanceof Error ? error.message : String(error)));
-                console.error('Failed to parse JSON from Gemini response:', jsonError instanceof Error ? jsonError.message : String(jsonError));
+              // If the error is an AxiosError, log the response status if available
+              // Add type annotation to error
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              if (error && typeof error === 'object' && 'response' in (error as any) && (error as any).response) {
+                console.error('Agent service responded with status:', (error as any).response.status);
+              }
+              console.error('Failed to parse JSON from Gemini response:', onerror instanceof Error ? onerror.message : String(onerror));
               return res.json(response.data);
-            }
+            
           } catch (endpointError) {
-            console.warn(`⚠️ Agent service endpoint ${endpoint} failed:`, endpointError instanceof Error ? endpointError.message : String(endpointError));
-          console.warn('⚠️ Orchestrator not available, falling back to direct API call', orchestratorError instanceof Error ? orchestratorError.message : String(orchestratorError));
+            console.warn(`⚠️ Agent service endpoint ${endpoints} failed:`, endpointError instanceof Error ? endpointError.message : String(endpointError));
+          }
         }
         
         throw new Error('All agent service endpoints failed');

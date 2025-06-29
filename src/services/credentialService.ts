@@ -166,6 +166,7 @@ export const credentialService = {
       'email': [
         { 
           key: 'email_api_key', 
+          name: 'Email API Key',
           description: 'API Key for email service' 
         }
       ],

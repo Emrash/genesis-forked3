@@ -51,10 +51,6 @@ export const GuildDeploymentPanel: React.FC<GuildDeploymentPanelProps> = ({
     { id: 'activation', label: 'Activating guild services', icon: CheckCircle }
   ];
 
-  const handleApprove = () => {
-    setIsGeneratingCanvas(true);
-    setStep('canvas');
-  };
   
   // Function to handle deployment success
   const handleDeploymentSuccess = (deploymentId: string) => {
@@ -70,12 +66,9 @@ export const GuildDeploymentPanel: React.FC<GuildDeploymentPanelProps> = ({
   // Function to handle deployment error
   const handleDeploymentError = (errorMessage: string) => {
     console.error('❌ Guild deployment failed:', errorMessage);
-    setErrors([errorMessage]);
+    setError(errorMessage);
   };
 
-  const handleEdit = () => {
-    setStep('intent');
-  };
 
   // Start deployment process
   const startDeployment = () => {
@@ -221,7 +214,7 @@ export const GuildDeploymentPanel: React.FC<GuildDeploymentPanelProps> = ({
               <div className="space-y-4">
                 <h4 className="text-white font-medium">Deployment Steps</h4>
                 <div className="space-y-2">
-                  {deploymentSteps.map((step, index) => (
+                  {deploymentSteps.map((step) => (
                     <div 
                       key={step.id}
                       className="flex items-center space-x-3 p-3 rounded-lg bg-white/5 border border-white/10"

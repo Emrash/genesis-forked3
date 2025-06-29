@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   Activity, 
   AlertTriangle, 
   CheckCircle, 
-  Database, 
   Server, 
   Shield, 
   RefreshCw,
   Cpu,
-  FileCode,
   Globe,
   ExternalLink,
   HelpCircle,
@@ -18,9 +16,7 @@ import {
   Zap,
   Copy,
   MessageSquare,
-  Mail,
-  ArrowRight
-} from 'lucide-react';
+  Mail} from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 import { HolographicButton } from '../ui/HolographicButton';
 import { DeploymentStatus } from '../../services/deploymentService';
@@ -374,7 +370,7 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
               </div>
               
               <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
-                {status.channels && status.channels.length > 0 ? (
+                {Array.isArray(status.channels) && status.channels.length > 0 ? (
                   status.channels.map((channel, index) => (
                     <div
                       key={index}
@@ -558,11 +554,11 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
                 <HolographicButton
                   variant="outline"
                   onClick={() => {
-                    if (status.channels && status.channels.length > 0 && status.channels[0].url) {
+                    if (Array.isArray(status.channels) && status.channels.length > 0 && status.channels[0].url) {
                       window.open(status.channels[0].url, '_blank');
                     }
                   }}
-                  disabled={!status.channels || status.channels.length === 0}
+                  disabled={!Array.isArray(status.channels) || status.channels.length === 0}
                 >
                   <Globe className="w-4 h-4 mr-2" />
                   View Guild Interface
