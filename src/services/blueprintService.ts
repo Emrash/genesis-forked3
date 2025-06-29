@@ -43,29 +43,25 @@ export const blueprintService = {
               
               if (response.ok) {
                 const blueprint = await response.json();
-                if (jsonStart >= 0 && jsonEnd > jsonStart) {
-                  const jsonStr = generatedText.substring(jsonStart, jsonEnd);
-                  const blueprint = JSON.parse(jsonStr);
-                  
-                  // Generate a unique ID if not present
-                  if (!blueprint.id) {
-                    blueprint.id = `blueprint-${Date.now()}`;
-                  }
-                  
-                  // Ensure user input is set
-                  blueprint.user_input = userInput;
-                  
-                  // Add status and timestamp if not present
-                  if (!blueprint.status) {
-                    blueprint.status = 'pending';
-                  }
-                  if (!blueprint.created_at) {
-                    blueprint.created_at = new Date().toISOString();
-                  }
-                  
-                  console.log('✅ Blueprint generated successfully with Gemini API');
-                  return blueprint;
+
+                // Generate a unique ID if not present
+                if (!blueprint.id) {
+                  blueprint.id = `blueprint-${Date.now()}`;
                 }
+
+                // Ensure user input is set
+                blueprint.user_input = userInput;
+
+                // Add status and timestamp if not present
+                if (!blueprint.status) {
+                  blueprint.status = 'pending';
+                }
+                if (!blueprint.created_at) {
+                  blueprint.created_at = new Date().toISOString();
+                }
+
+                console.log('✅ Blueprint generated successfully with agent service');
+                return blueprint;
               }
             } catch (jsonError) {
               console.error('Failed to parse JSON from Gemini response:', jsonError);
@@ -172,3 +168,57 @@ function getGuildNameFromInput(userInput: string): string {
     return "Business Automation Guild";
   }
 }
+
+function createSampleBlueprint(userInput: string): Blueprint {
+  const guildName = getGuildNameFromInput(userInput);
+
+  return {
+    id: `blueprint-${Date.now()}`,
+    user_input: userInput,
+    interpretation: `I understand that you want to: ${userInput}. I'll create a comprehensive AI-powered system to accomplish this goal using specialized AI agents and automated workflows.`,
+    suggested_structure: {
+      guild_name: guildName,
+      guild_purpose: `A powerful AI guild designed to accomplish: ${userInput}`,
+      agents: [
+        {
+          name: "Data Analyst",
+          role: "Analytics Specialist",
+          description: "Analyzes data and provides actionable insights",
+          tools_needed: ["Google Analytics API", "Database", "Reporting Tools"]
+        },
+        {
+          name: "Content Creator",
+          role: "Creative Writer",
+          description: "Generates high-quality content based on analytics",
+          tools_needed: ["Google Docs", "Grammarly", "Content Management"]
+        },
+        {
+          name: "Outreach Manager",
+          role: "Communications Specialist",
+          description: "Handles external communications and promotions",
+          tools_needed: ["Email API", "Social Media API", "CRM System"]
+        }
+      ],
+      workflows: [
+        {
+          name: "Weekly Analytics Review",
+          description: "Analyzes weekly metrics and generates detailed reports",
+          trigger_type: "schedule"
+        },
+        {
+          name: "Content Production Pipeline",
+          description: "Creates and publishes content based on performance data",
+          trigger_type: "manual"
+        },
+        {
+          name: "Customer Response System",
+          description: "Responds to customer inquiries and feedback",
+          trigger_type: "webhook"
+        }
+      ]
+    },
+    status: 'pending',
+    created_at: new Date().toISOString()
+  };
+}
+
