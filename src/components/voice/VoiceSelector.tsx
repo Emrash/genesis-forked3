@@ -81,6 +81,9 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
         const defaultVoices = getMockVoices();
         setVoices(defaultVoices);
         
+        // Log available voices for debugging
+        console.log('📢 Using default voices:', defaultVoices);
+        
         if (!selectedVoiceId && defaultVoices.length > 0) {
           onSelect(defaultVoices[0].voice_id);
         }
@@ -92,6 +95,9 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
       // Fall back to default voices
       const defaultVoices = getMockVoices();
       setVoices(defaultVoices);
+      
+      // Log available voices for debugging
+      console.log('📢 Using default voices:', defaultVoices);
       
       if (!selectedVoiceId && defaultVoices.length > 0) {
         onSelect(defaultVoices[0].voice_id);
@@ -170,6 +176,11 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
   
   return (
     <div className={`relative w-full ${className}`} data-testid="voice-selector">
+      {/* Debug info */}
+      {voices.length > 0 && (
+        <div className="hidden">Available voices: {voices.map(v => v.name).join(', ')}</div>
+      )}
+      
       {label && (
         <label className="block text-sm text-gray-300 mb-1">{label}</label>
       )}
@@ -192,13 +203,15 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute z-50 mt-1 w-full shadow-xl"
+            className="absolute z-50 mt-1 w-full"
+            style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}
           >
-            <GlassCard variant="medium" className="w-full">
+            <GlassCard variant="medium" className="w-full p-0">
               <div 
-                className="p-2 max-h-64 overflow-y-auto" 
+                className="p-2 max-h-[300px] overflow-y-auto" 
                 ref={listRef} 
                 data-testid="voice-list"
+                style={{ scrollbarWidth: 'thin' }}
               >
                 {isLoading ? (
                   <div className="py-4 flex items-center justify-center">
@@ -207,54 +220,56 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
                   </div>
                 ) : voices.length === 0 ? (
                   <div className="py-4 text-center text-gray-300">
-                    No voices available
+                    No voices available. Please check your connection.
                   </div>
                 ) : (
-                  voices.map(voice => (
-                    <button
-                      key={voice.voice_id}
-                      data-voice-id={voice.voice_id}
-                      onClick={() => {
-                        console.log(`✅ Selected voice: ${voice.name} (${voice.voice_id})`);
-                        onSelect(voice.voice_id);
-                        setIsOpen(false);
-                      }}
-                      className={`w-full flex items-center justify-between p-3 rounded-lg ${
-                        selectedVoiceId === voice.voice_id
-                          ? 'bg-purple-500/20 border border-purple-500/30'
-                          : 'hover:bg-white/10 border border-transparent'
-                      } transition-colors mb-1 last:mb-0`}
-                    >
-                      <div className="flex items-center space-x-2">
-                        {selectedVoiceId === voice.voice_id ? (
-                          <Check className="w-4 h-4 text-purple-400" />
-                        ) : (
-                          <Volume className="w-4 h-4 text-gray-400" />
-                        )}
-                        <div className="text-left">
-                          <div className="text-white">{voice.name}</div>
-                          {voice.description && (
-                            <div className="text-xs text-gray-400">{voice.description}</div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <HolographicButton
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          playVoiceSample(voice.voice_id);
+                  <div className="space-y-1">
+                    {voices.map(voice => (
+                      <button
+                        key={voice.voice_id}
+                        data-voice-id={voice.voice_id}
+                        onClick={() => {
+                          console.log(`✅ Selected voice: ${voice.name} (${voice.voice_id})`);
+                          onSelect(voice.voice_id);
+                          setIsOpen(false);
                         }}
+                        className={`w-full flex items-center justify-between p-3 rounded-lg ${
+                          selectedVoiceId === voice.voice_id
+                            ? 'bg-purple-500/20 border border-purple-500/30'
+                            : 'hover:bg-white/10 border border-transparent'
+                        } transition-colors mb-1 last:mb-0`}
                       >
-                        {playingVoice === voice.voice_id ? (
-                          <Pause className="w-4 h-4" />
-                        ) : (
-                          <Play className="w-4 h-4" />
-                        )}
-                      </HolographicButton>
-                    </button>
-                  ))
+                        <div className="flex items-center space-x-2">
+                          {selectedVoiceId === voice.voice_id ? (
+                            <Check className="w-4 h-4 text-purple-400" />
+                          ) : (
+                            <Volume className="w-4 h-4 text-gray-400" />
+                          )}
+                          <div className="text-left">
+                            <div className="text-white">{voice.name}</div>
+                            {voice.description && (
+                              <div className="text-xs text-gray-400">{voice.description}</div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <HolographicButton
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            playVoiceSample(voice.voice_id);
+                          }}
+                        >
+                          {playingVoice === voice.voice_id ? (
+                            <Pause className="w-4 h-4" />
+                          ) : (
+                            <Play className="w-4 h-4" />
+                          )}
+                        </HolographicButton>
+                      </button>
+                    ))}
+                  </div>
                 )}
                 
                 {error && (
@@ -268,19 +283,24 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
               
               <div className="flex justify-between pt-3 mt-2 border-t border-white/10">
                 <HolographicButton
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={() => setIsOpen(false)}
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-4 h-4 mr-1" />
+                  Close
                 </HolographicButton>
                 
                 <HolographicButton
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={fetchVoices}
+                  onClick={() => {
+                    console.log('🔄 Manually refreshing voice list');
+                    fetchVoices();
+                  }}
                 >
-                  <Loader className="w-4 h-4" />
+                  <Loader className="w-4 h-4 mr-1" />
+                  Refresh
                 </HolographicButton>
               </div>
             </GlassCard>
