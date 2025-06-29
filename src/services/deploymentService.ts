@@ -14,6 +14,8 @@ export const deploymentService = {
     credentials: Record<string, string>
   ): Promise<DeploymentResult> => {
     console.log('🚀 Starting guild deployment process');
+    console.log('Blueprint:', blueprint.id);
+    console.log('Credentials:', Object.keys(credentials));
     
     try {
       // Step 1: Create the guild
@@ -43,6 +45,9 @@ export const deploymentService = {
       console.log('2️⃣ Creating intelligent agents...');
       const createdAgents = [];
       const failedAgents = [];
+
+      // Get the preferred AI model
+      const preferredModel = localStorage.getItem('preferred_ai_model') || 'gemini-flash';
       
       // Process agents in sequence to avoid race conditions
       for (const agentBlueprint of blueprint.suggested_structure.agents) {

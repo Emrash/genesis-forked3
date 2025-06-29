@@ -51,6 +51,32 @@ export const GuildDeploymentPanel: React.FC<GuildDeploymentPanelProps> = ({
     { id: 'activation', label: 'Activating guild services', icon: CheckCircle }
   ];
 
+  const handleApprove = () => {
+    setIsGeneratingCanvas(true);
+    setStep('canvas');
+  };
+  
+  // Function to handle deployment success
+  const handleDeploymentSuccess = (deploymentId: string) => {
+    console.log('✅ Guild deployed successfully:', deploymentId);
+    // Store the deployment ID in localStorage for persistence
+    try {
+      localStorage.setItem('last_deployment_id', deploymentId);
+    } catch (e) {
+      console.warn('Failed to save deployment ID to localStorage:', e);
+    }
+  };
+  
+  // Function to handle deployment error
+  const handleDeploymentError = (errorMessage: string) => {
+    console.error('❌ Guild deployment failed:', errorMessage);
+    setErrors([errorMessage]);
+  };
+
+  const handleEdit = () => {
+    setStep('intent');
+  };
+
   // Start deployment process
   const startDeployment = () => {
     if (deploymentState === 'deploying') return;
@@ -445,6 +471,13 @@ export const GuildDeploymentPanel: React.FC<GuildDeploymentPanelProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+          <GuildDeploymentPanel 
+            blueprint={blueprint}
+            onSuccess={handleDeploymentSuccess}
+            onError={handleDeploymentError}
+          />
+        ) : null
+      ) : isDeployed ? (
     </GlassCard>
   );
 };
