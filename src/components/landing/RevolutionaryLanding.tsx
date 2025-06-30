@@ -133,6 +133,14 @@ export const RevolutionaryLanding: React.FC<RevolutionaryLandingProps> = ({
               />
               <span className="text-white font-bold text-xl relative z-10">G</span>
             </div>
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 rounded-2xl flex items-center justify-center relative overflow-hidden">
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+              />
+              <span className="text-white font-bold text-xl relative z-10">G</span>
+            </div>
           </motion.div>
           <div>
             <span className="text-2xl font-bold bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent">
@@ -210,6 +218,19 @@ export const RevolutionaryLanding: React.FC<RevolutionaryLandingProps> = ({
                 Godlike
               </motion.span>
               <span className="block">Companies</span>
+                animate={{
+                  backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                }}
+                transition={{
+                  duration: 5,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                style={{
+                  backgroundSize: "200% 200%"
+                }}
+              >
+                Godlike
             </h1>
           </motion.div>
 

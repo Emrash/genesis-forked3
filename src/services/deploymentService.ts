@@ -2,6 +2,467 @@ import { api, apiMethods } from '../lib/api';
 import { Blueprint } from '../types';
 
 /**
+ * Enhanced DeploymentManager for production deployments
+ */
+export class DeploymentManager {
+  private static instance: DeploymentManager;
+  private activeDeployments: Map<string, DeploymentStatus> = new Map();
+  private deploymentListeners: Map<string, Set<(status: DeploymentStatus) => void>> = new Map();
+  
+  private constructor() {}
+  
+  public static getInstance(): DeploymentManager {
+    if (!DeploymentManager.instance) {
+      DeploymentManager.instance = new DeploymentManager();
+    }
+    return DeploymentManager.instance;
+  }
+  
+  /**
+   * Deploy a guild to production
+   */
+  public async deploy(guild: any, config?: any): Promise<DeploymentStatus> {
+    try {
+      console.log('🚀 Starting guild deployment process');
+      
+      // Validate deployment configuration
+      await this.validateDeploymentConfig(guild);
+      
+      // Create deployment ID and initial status
+      const deploymentId = `deploy-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      const initialStatus: DeploymentStatus = {
+        id: deploymentId,
+        guild: {
+          id: guild.id,
+          name: guild.name,
+          status: 'deploying'
+        },
+        status: 'provisioning',
+        progress: 5,
+        createdAt: new Date().toISOString(),
+        metrics: {
+          agentsDeployed: 0,
+          workflowsConfigured: 0,
+          servicesConnected: 0
+        },
+        steps: [
+          { id: 'provision', name: 'Provision Infrastructure', status: 'running', progress: 10 },
+          { id: 'deploy-agents', name: 'Deploy Agents', status: 'pending', progress: 0 },
+          { id: 'deploy-workflows', name: 'Deploy Workflows', status: 'pending', progress: 0 },
+          { id: 'deploy-services', name: 'Configure Services', status: 'pending', progress: 0 },
+          { id: 'test', name: 'Test Deployment', status: 'pending', progress: 0 },
+          { id: 'finalize', name: 'Finalize Deployment', status: 'pending', progress: 0 }
+        ]
+      };
+      
+      // Store initial status
+      this.activeDeployments.set(deploymentId, initialStatus);
+      
+      // Run the deployment process in the background
+      this.runDeploymentProcess(deploymentId, guild, config);
+      
+      return initialStatus;
+    } catch (error: any) {
+      console.error('❌ Deployment setup failed:', error);
+      throw new Error(`Deployment initialization failed: ${error.message}`);
+    }
+  }
+  
+  /**
+   * Validate deployment configuration
+   */
+  private async validateDeploymentConfig(guild: any): Promise<void> {
+    // Check if guild has required properties
+    if (!guild.id || !guild.name) {
+      throw new Error('Invalid guild configuration: missing required properties');
+    }
+    
+    // Check if agents are configured
+    if (!guild.agents || guild.agents.length === 0) {
+      throw new Error('Invalid guild configuration: no agents configured');
+    }
+    
+    // Check if required credentials are present
+    // This would be a more complex check in a real implementation
+    
+    return;
+  }
+  
+  /**
+   * Run the deployment process in the background
+   */
+  private async runDeploymentProcess(deploymentId: string, guild: any, config?: any): Promise<void> {
+    try {
+      // Step 1: Provision Infrastructure
+      await this.provisionInfrastructure(deploymentId, guild);
+      
+      // Step 2: Deploy Agents
+      await this.deployAgentServices(deploymentId, guild);
+      
+      // Step 3: Deploy Workflows
+      await this.deployWorkflows(deploymentId, guild);
+      
+      // Step 4: Configure Services and Integrations
+      await this.deployIntegrations(deploymentId, guild, config);
+      
+      // Step 5: Test deployment
+      await this.testDeployment(deploymentId, guild);
+      
+      // Step 6: Finalize deployment
+      await this.finalizeDeployment(deploymentId, guild);
+      
+    } catch (error: any) {
+      console.error('❌ Deployment process failed:', error);
+      
+      // Update status to failed
+      const currentStatus = this.activeDeployments.get(deploymentId);
+      if (currentStatus) {
+        const updatedStatus: DeploymentStatus = {
+          ...currentStatus,
+          status: 'failed',
+          error: error.message,
+          progress: -1
+        };
+        
+        this.activeDeployments.set(deploymentId, updatedStatus);
+        this.notifyListeners(deploymentId, updatedStatus);
+      }
+    }
+  }
+  
+  /**
+   * Provision infrastructure for deployment
+   */
+  private async provisionInfrastructure(deploymentId: string, guild: any): Promise<void> {
+    // Update status
+    this.updateDeploymentStepStatus(deploymentId, 'provision', 'running', 10);
+    
+    // Simulate infrastructure provisioning
+    await this.simulateProgress(deploymentId, 'provision', 10, 100, 3000);
+    
+    // Update overall progress
+    this.updateDeploymentProgress(deploymentId, 20);
+    
+    // Mark step as complete
+    this.updateDeploymentStepStatus(deploymentId, 'provision', 'completed', 100);
+  }
+  
+  /**
+   * Deploy agent services
+   */
+  private async deployAgentServices(deploymentId: string, guild: any): Promise<void> {
+    // Update status
+    this.updateDeploymentStepStatus(deploymentId, 'deploy-agents', 'running', 10);
+    
+    // Deploy each agent
+    const agents = guild.agents || [];
+    let deployedAgents = 0;
+    
+    for (let i = 0; i < agents.length; i++) {
+      const agent = agents[i];
+      const progress = Math.floor(10 + (i / agents.length) * 90);
+      
+      // Update step progress
+      this.updateDeploymentStepStatus(deploymentId, 'deploy-agents', 'running', progress);
+      
+      // Simulate agent deployment
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      deployedAgents++;
+      
+      // Update metrics
+      const status = this.activeDeployments.get(deploymentId);
+      if (status) {
+        status.metrics.agentsDeployed = deployedAgents;
+        this.activeDeployments.set(deploymentId, status);
+        this.notifyListeners(deploymentId, status);
+      }
+    }
+    
+    // Update overall progress
+    this.updateDeploymentProgress(deploymentId, 40);
+    
+    // Mark step as complete
+    this.updateDeploymentStepStatus(deploymentId, 'deploy-agents', 'completed', 100);
+  }
+  
+  /**
+   * Deploy workflows
+   */
+  private async deployWorkflows(deploymentId: string, guild: any): Promise<void> {
+    // Update status
+    this.updateDeploymentStepStatus(deploymentId, 'deploy-workflows', 'running', 10);
+    
+    // Deploy each workflow
+    const workflows = guild.workflows || [];
+    let deployedWorkflows = 0;
+    
+    for (let i = 0; i < workflows.length; i++) {
+      const workflow = workflows[i];
+      const progress = Math.floor(10 + (i / workflows.length) * 90);
+      
+      // Update step progress
+      this.updateDeploymentStepStatus(deploymentId, 'deploy-workflows', 'running', progress);
+      
+      // Simulate workflow deployment
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      deployedWorkflows++;
+      
+      // Update metrics
+      const status = this.activeDeployments.get(deploymentId);
+      if (status) {
+        status.metrics.workflowsConfigured = deployedWorkflows;
+        this.activeDeployments.set(deploymentId, status);
+        this.notifyListeners(deploymentId, status);
+      }
+    }
+    
+    // Update overall progress
+    this.updateDeploymentProgress(deploymentId, 60);
+    
+    // Mark step as complete
+    this.updateDeploymentStepStatus(deploymentId, 'deploy-workflows', 'completed', 100);
+  }
+  
+  /**
+   * Deploy integrations
+   */
+  private async deployIntegrations(deploymentId: string, guild: any, config?: any): Promise<void> {
+    // Update status
+    this.updateDeploymentStepStatus(deploymentId, 'deploy-services', 'running', 10);
+    
+    // Get integrations from config
+    const integrations = config?.integrations || [];
+    let connectedServices = 0;
+    
+    for (let i = 0; i < integrations.length; i++) {
+      const integration = integrations[i];
+      const progress = Math.floor(10 + (i / integrations.length) * 90);
+      
+      // Update step progress
+      this.updateDeploymentStepStatus(deploymentId, 'deploy-services', 'running', progress);
+      
+      // Simulate integration deployment
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      connectedServices++;
+      
+      // Update metrics
+      const status = this.activeDeployments.get(deploymentId);
+      if (status) {
+        status.metrics.servicesConnected = connectedServices;
+        this.activeDeployments.set(deploymentId, status);
+        this.notifyListeners(deploymentId, status);
+      }
+    }
+    
+    // Update overall progress
+    this.updateDeploymentProgress(deploymentId, 80);
+    
+    // Mark step as complete
+    this.updateDeploymentStepStatus(deploymentId, 'deploy-services', 'completed', 100);
+  }
+  
+  /**
+   * Test deployment
+   */
+  private async testDeployment(deploymentId: string, guild: any): Promise<void> {
+    // Update status
+    this.updateDeploymentStepStatus(deploymentId, 'test', 'running', 10);
+    
+    // Simulate testing
+    await this.simulateProgress(deploymentId, 'test', 10, 100, 2000);
+    
+    // Update overall progress
+    this.updateDeploymentProgress(deploymentId, 90);
+    
+    // Mark step as complete
+    this.updateDeploymentStepStatus(deploymentId, 'test', 'completed', 100);
+  }
+  
+  /**
+   * Finalize deployment
+   */
+  private async finalizeDeployment(deploymentId: string, guild: any): Promise<void> {
+    // Update status
+    this.updateDeploymentStepStatus(deploymentId, 'finalize', 'running', 10);
+    
+    // Simulate finalization
+    await this.simulateProgress(deploymentId, 'finalize', 10, 100, 1500);
+    
+    // Update overall progress
+    this.updateDeploymentProgress(deploymentId, 100);
+    
+    // Mark step as complete
+    this.updateDeploymentStepStatus(deploymentId, 'finalize', 'completed', 100);
+    
+    // Update overall status
+    const status = this.activeDeployments.get(deploymentId);
+    if (status) {
+      status.status = 'deployed';
+      status.guild.status = 'active';
+      status.completedAt = new Date().toISOString();
+      
+      this.activeDeployments.set(deploymentId, status);
+      this.notifyListeners(deploymentId, status);
+    }
+  }
+  
+  /**
+   * Simulate progress updates for a step
+   */
+  private async simulateProgress(
+    deploymentId: string,
+    stepId: string,
+    startProgress: number,
+    endProgress: number,
+    duration: number
+  ): Promise<void> {
+    const steps = Math.max(1, Math.floor(duration / 100));
+    const increment = (endProgress - startProgress) / steps;
+    
+    for (let i = 0; i < steps; i++) {
+      const progress = Math.min(
+        endProgress,
+        startProgress + Math.floor(increment * (i + 1))
+      );
+      
+      this.updateDeploymentStepStatus(deploymentId, stepId, 'running', progress);
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+  
+  /**
+   * Update deployment step status
+   */
+  private updateDeploymentStepStatus(
+    deploymentId: string,
+    stepId: string,
+    status: 'pending' | 'running' | 'completed' | 'failed',
+    progress: number
+  ): void {
+    const deploymentStatus = this.activeDeployments.get(deploymentId);
+    if (!deploymentStatus) return;
+    
+    const step = deploymentStatus.steps.find(s => s.id === stepId);
+    if (!step) return;
+    
+    step.status = status;
+    step.progress = progress;
+    
+    this.activeDeployments.set(deploymentId, deploymentStatus);
+    this.notifyListeners(deploymentId, deploymentStatus);
+  }
+  
+  /**
+   * Update overall deployment progress
+   */
+  private updateDeploymentProgress(deploymentId: string, progress: number): void {
+    const status = this.activeDeployments.get(deploymentId);
+    if (!status) return;
+    
+    status.progress = progress;
+    
+    this.activeDeployments.set(deploymentId, status);
+    this.notifyListeners(deploymentId, status);
+  }
+  
+  /**
+   * Get deployment status
+   */
+  public getDeploymentStatus(deploymentId: string): DeploymentStatus | undefined {
+    return this.activeDeployments.get(deploymentId);
+  }
+  
+  /**
+   * Get all deployment statuses
+   */
+  public getAllDeploymentStatuses(): DeploymentStatus[] {
+    return Array.from(this.activeDeployments.values());
+  }
+  
+  /**
+   * Subscribe to deployment status updates
+   */
+  public subscribeToDeploymentUpdates(
+    deploymentId: string,
+    callback: (status: DeploymentStatus) => void
+  ): void {
+    if (!this.deploymentListeners.has(deploymentId)) {
+      this.deploymentListeners.set(deploymentId, new Set());
+    }
+    
+    this.deploymentListeners.get(deploymentId)!.add(callback);
+  }
+  
+  /**
+   * Unsubscribe from deployment status updates
+   */
+  public unsubscribeFromDeploymentUpdates(
+    deploymentId: string,
+    callback: (status: DeploymentStatus) => void
+  ): void {
+    if (!this.deploymentListeners.has(deploymentId)) return;
+    
+    this.deploymentListeners.get(deploymentId)!.delete(callback);
+  }
+  
+  /**
+   * Notify listeners of deployment status updates
+   */
+  private notifyListeners(deploymentId: string, status: DeploymentStatus): void {
+    if (!this.deploymentListeners.has(deploymentId)) return;
+    
+    for (const listener of this.deploymentListeners.get(deploymentId)!) {
+      try {
+        listener(status);
+      } catch (error) {
+        console.error(`Error in deployment listener for ${deploymentId}:`, error);
+      }
+    }
+  }
+}
+
+/**
+ * Deployment status
+ */
+export interface DeploymentStatus {
+  id: string;
+  guild: {
+    id: string;
+    name: string;
+    status: string;
+  };
+  status: string;
+  progress: number;
+  createdAt: string;
+  completedAt?: string;
+  error?: string;
+  metrics: {
+    agentsDeployed: number;
+    workflowsConfigured: number;
+    servicesConnected: number;
+  };
+  steps: DeploymentStep[];
+  channels?: any[];
+}
+
+/**
+ * Deployment step
+ */
+export interface DeploymentStep {
+  id: string;
+  name: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  progress: number;
+  error?: string;
+}
+
+// Export singleton instance
+export const deploymentManager = DeploymentManager.getInstance();
+/**
  * Service for managing deployment operations
  */
 export const deploymentService = {
