@@ -27,6 +27,7 @@ export interface Trigger {
   lastTriggered?: Date;
   createdAt: Date;
   updatedAt: Date;
+  metadata?: Record<string, any>;
 }
 
 // Event bus for trigger system
@@ -227,6 +228,172 @@ export class TriggerService {
         await this.executeTriggerAction(trigger);
       }
     });
+  }
+
+  /**
+   * Create a Slack message trigger
+   */
+  public async createSlackMessageTrigger(
+    guildId: string,
+    webhookUrl: string,
+    agentId: string,
+    name: string
+  ): Promise<Trigger> {
+    // Create trigger data
+    const triggerData: Omit<Trigger, 'id' | 'createdAt' | 'updatedAt'> = {
+      guildId,
+      agentId,
+      name: name || 'Slack Message Trigger',
+      description: 'Sends a message to Slack when triggered',
+      condition: {
+        type: 'event',
+        config: {
+          eventType: 'agent_response',
+          filters: {
+            agent_id: agentId
+          }
+        }
+      },
+      action: {
+        type: 'webhook',
+        target: webhookUrl,
+        payload: {
+          text: "Agent {{agent_name}} responded: {{response_text}}",
+          channel: "general",
+          username: "GenesisOS Bot",
+          icon_emoji: ":robot_face:"
+        }
+      },
+      status: 'active'
+    };
+    
+    // Create the trigger
+    return await this.createTrigger(triggerData);
+  }
+  
+  /**
+   * Create a scheduled trigger
+   */
+  public async createScheduledTrigger(
+    guildId: string,
+    agentId: string,
+    name: string,
+    schedule: string,
+    input: string
+  ): Promise<Trigger> {
+    // Create trigger data
+    const triggerData: Omit<Trigger, 'id' | 'createdAt' | 'updatedAt'> = {
+      guildId,
+      agentId,
+      name: name || 'Scheduled Trigger',
+      description: 'Executes an agent on a schedule',
+      condition: {
+        type: 'schedule',
+        config: {
+          schedule
+        }
+      },
+      action: {
+        type: 'agent_execute',
+        target: agentId,
+        payload: {
+          input,
+          context: {
+            scheduled: true,
+            trigger_id: uuid()
+          }
+        }
+      },
+      status: 'active'
+    };
+    
+    // Create the trigger
+    return await this.createTrigger(triggerData);
+  }
+  
+  /**
+   * Create a webhook trigger
+   */
+  public async createWebhookTrigger(
+    guildId: string,
+    agentId: string,
+    name: string,
+    path: string
+  ): Promise<Trigger> {
+    // Create trigger data
+    const triggerData: Omit<Trigger, 'id' | 'createdAt' | 'updatedAt'> = {
+      guildId,
+      agentId,
+      name: name || 'Webhook Trigger',
+      description: 'Executes an agent when a webhook is received',
+      condition: {
+        type: 'webhook',
+        config: {
+          path
+        }
+      },
+      action: {
+        type: 'agent_execute',
+        target: agentId,
+        payload: {
+          input: "{{webhook_body}}",
+          context: {
+            webhook_data: true,
+            trigger_id: uuid()
+          }
+        }
+      },
+      status: 'active'
+    };
+    
+    // Create the trigger
+    return await this.createTrigger(triggerData);
+  }
+  
+  /**
+   * Create a threshold trigger
+   */
+  public async createThresholdTrigger(
+    guildId: string,
+    agentId: string,
+    name: string,
+    metric: string,
+    threshold: number,
+    operator: string
+  ): Promise<Trigger> {
+    // Create trigger data
+    const triggerData: Omit<Trigger, 'id' | 'createdAt' | 'updatedAt'> = {
+      guildId,
+      agentId,
+      name: name || 'Threshold Trigger',
+      description: 'Executes an agent when a metric exceeds a threshold',
+      condition: {
+        type: 'threshold',
+        config: {
+          metric,
+          threshold,
+          operator
+        }
+      },
+      action: {
+        type: 'agent_execute',
+        target: agentId,
+        payload: {
+          input: `The metric ${metric} has ${operator} the threshold of ${threshold}`,
+          context: {
+            metric_data: true,
+            trigger_id: uuid(),
+            metric,
+            threshold,
+            operator
+          }
+        }
+      },
+      status: 'active'
+    };
+    
+    // Create the trigger
+    return await this.createTrigger(triggerData);
   }
 
   /**

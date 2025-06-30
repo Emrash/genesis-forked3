@@ -258,6 +258,7 @@ export const VideoInterface: React.FC<VideoInterfaceProps> = ({
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
         className={`fixed ${isMinimized ? 'bottom-20 right-4' : 'bottom-20 right-4 w-96 max-h-[80vh]'} z-40`}
       >
         {isMinimized ? (
@@ -374,7 +375,7 @@ export const VideoInterface: React.FC<VideoInterfaceProps> = ({
                       />
                     ) : (
                       <div className="text-center p-4">
-                        <Video className="w-10 h-10 mx-auto mb-2 text-gray-400" />
+                        <Video className="w-10 h-10 text-gray-400 mx-auto mb-2" />
                         <p className="text-sm text-gray-400">No video available</p>
                       </div>
                     )}

@@ -13,7 +13,12 @@ import {
   LogOut,
   Menu,
   X,
-  User
+  User,
+  UserCircle,
+  Plus,
+  LayersIcon,
+  Bot,
+  GitMerge
 } from 'lucide-react';
 import { GlassCard } from './GlassCard';
 
