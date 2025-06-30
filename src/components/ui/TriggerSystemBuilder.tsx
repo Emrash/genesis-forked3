@@ -13,7 +13,8 @@ import {
   AlertTriangle,
   MessageSquare,
   Target,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { GlassCard } from './GlassCard';
 import { HolographicButton } from './HolographicButton';

@@ -252,7 +252,7 @@ export class SlackIntegration {
           channel: options.channel,
           ts: options.ts,
           text: options.text,
-          channel: channel.startsWith('#') ? channel : (channel === 'general' ? '#general' : `#${channel}`)
+          blocks: options.blocks
         })
       });
       

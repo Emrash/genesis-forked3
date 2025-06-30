@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Activity, 
-  AlertTriangle, 
-  CheckCircle, 
-  Server, 
-  Shield, 
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle,
+  Server,
+  Shield,
   RefreshCw,
   Cpu,
   Globe,
@@ -16,7 +16,8 @@ import {
   Zap,
   Copy,
   MessageSquare,
-  Mail} from 'lucide-react';
+  Mail
+} from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 import { HolographicButton } from '../ui/HolographicButton';
 import { DeploymentStatus } from '../../services/deploymentService';
@@ -44,42 +45,42 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
     level: 'info' | 'warning' | 'error';
     message: string;
   }[]>([]);
-  
+
   // Set up polling for status updates
   useEffect(() => {
     if (deploymentId) {
       fetchDeploymentStatus();
-    
+
       // Only set up polling if we're still deploying
       if (status?.status === 'deploying' || status?.status === 'provisioning' || !status) {
         const interval = setInterval(() => {
           fetchDeploymentStatus();
         }, refreshInterval);
-        
+
         return () => clearInterval(interval);
       }
     }
   }, [deploymentId, refreshInterval, status?.status]);
-  
+
   const fetchDeploymentStatus = async () => {
     try {
       setLoading(true);
-      
+
       // Simulated API call
       const response = await fetch(`/api/deployments/status/${deploymentId}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch deployment status: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       setStatus(data);
       setLastRefresh(new Date());
-      
+
       // Notify parent component if status changed
       if (onStatusChange && JSON.stringify(status) !== JSON.stringify(data)) {
         onStatusChange(data);
       }
-      
+
       // Add info to alert history if status changed
       if (status?.status !== data.status) {
         setAlertHistory(prev => [
@@ -91,17 +92,17 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
           ...prev
         ]);
       }
-      
+
       // If completed, slow down the refresh rate
       if (data.status === 'deployed' || data.status === 'failed') {
         setRefreshInterval(30000); // 30 seconds
       }
-      
+
       setError(null);
     } catch (err: any) {
       console.error('Error fetching deployment status:', err);
       setError(err.message || 'Failed to fetch deployment status');
-      
+
       // Add error to alert history
       setAlertHistory(prev => [
         {
@@ -111,14 +112,40 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
         },
         ...prev
       ]);
-      
-      // Generate mock status
+
+      // Generate mock status with required steps property
       setStatus({
         id: deploymentId,
         status: 'deployed',
         progress: 100,
         createdAt: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
         completedAt: new Date().toISOString(),
+        steps: [
+          {
+            id: 'step-1',
+            name: 'Infrastructure Setup',
+            status: 'completed',
+            progress: 100,
+
+            completedAt: new Date(Date.now() - 1000 * 60 * 8).toISOString()
+          },
+          {
+            id: 'step-2',
+            name: 'Agent Deployment',
+            status: 'completed',
+            progress: 100,
+
+            completedAt: new Date(Date.now() - 1000 * 60 * 5).toISOString()
+          },
+          {
+            id: 'step-3',
+            name: 'Channel Configuration',
+            status: 'completed',
+            progress: 100,
+
+            completedAt: new Date().toISOString()
+          }
+        ],
         guild: {
           id: deploymentId,
           name: 'AI Business Assistant Guild',
@@ -152,12 +179,12 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
       setLoading(false);
     }
   };
-  
+
   // Handle manual refresh
   const handleRefresh = () => {
     fetchDeploymentStatus();
   };
-  
+
   // Copy URL to clipboard
   const handleCopyUrl = (url: string) => {
     navigator.clipboard.writeText(url)
@@ -174,7 +201,7 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
       })
       .catch(err => {
         console.error('Failed to copy URL:', err);
-        
+
         // Add error to alert history
         setAlertHistory(prev => [
           {
@@ -186,7 +213,7 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
         ]);
       });
   };
-  
+
   // Get status badge
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -221,7 +248,7 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
         );
     }
   };
-  
+
   // Get channel icon
   const getChannelIcon = (type: string) => {
     switch (type) {
@@ -231,7 +258,7 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
       default: return <Globe className="w-4 h-4 text-gray-400" />;
     }
   };
-  
+
   return (
     <div className={`space-y-6 ${className}`}>
       <GlassCard variant="medium" className="p-6">
@@ -250,12 +277,12 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-3">
             <div className="text-xs text-gray-400 flex items-center">
               <Clock className="w-3 h-3 mr-1" />
-              {lastRefresh 
-                ? `Last updated: ${lastRefresh.toLocaleTimeString()}` 
+              {lastRefresh
+                ? `Last updated: ${lastRefresh.toLocaleTimeString()}`
                 : 'Updating...'}
             </div>
             <HolographicButton
@@ -268,7 +295,7 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
             </HolographicButton>
           </div>
         </div>
-        
+
         {error && (
           <div className="mb-6 p-3 bg-red-500/20 border border-red-500/40 rounded-lg text-red-300">
             <div className="flex items-start">
@@ -280,7 +307,7 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
             </div>
           </div>
         )}
-        
+
         {status && (
           <div className="space-y-8">
             {/* Main Status Panel */}
@@ -294,7 +321,7 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
                   </div>
                 )}
               </div>
-              
+
               {status.status === 'deploying' && (
                 <div className="mb-4">
                   <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
@@ -307,7 +334,7 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
                   </div>
                 </div>
               )}
-              
+
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white/10 p-3 rounded-lg">
                   <div className="flex items-center space-x-2 mb-1">
@@ -318,7 +345,7 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
                     {status.metrics.agentsDeployed}
                   </div>
                 </div>
-                
+
                 <div className="bg-white/10 p-3 rounded-lg">
                   <div className="flex items-center space-x-2 mb-1">
                     <Activity className="w-4 h-4 text-green-400" />
@@ -328,7 +355,7 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
                     {status.metrics.workflowsConfigured}
                   </div>
                 </div>
-                
+
                 <div className="bg-white/10 p-3 rounded-lg">
                   <div className="flex items-center space-x-2 mb-1">
                     <Globe className="w-4 h-4 text-yellow-400" />
@@ -338,26 +365,82 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
                     {status.metrics.servicesConnected}
                   </div>
                 </div>
-                
+
                 <div className="bg-white/10 p-3 rounded-lg">
                   <div className="flex items-center space-x-2 mb-1">
                     <AlarmClock className="w-4 h-4 text-purple-400" />
                     <div className="text-xs text-gray-300">Uptime</div>
                   </div>
                   <div className="text-xl font-bold text-white">
-                    {status.completedAt 
-                      ? Math.floor((new Date(status.completedAt).getTime() - new Date(status.createdAt).getTime()) / (1000 * 60)) 
+                    {status.completedAt
+                      ? Math.floor((new Date(status.completedAt).getTime() - new Date(status.createdAt).getTime()) / (1000 * 60))
                       : Math.floor((Date.now() - new Date(status.createdAt).getTime()) / (1000 * 60))}m
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* Deployment Steps */}
+            {status.steps && status.steps.length > 0 && (
+              <div>
+                <h3 className="text-white font-medium mb-4">Deployment Steps</h3>
+
+                <div className="space-y-3">
+                  {status.steps.map((step, index) => (
+                    <div
+                      key={step.id}
+                      className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step.status === 'completed' ? 'bg-green-500/20 border border-green-500/40' :
+                            step.status === 'running' ? 'bg-blue-500/20 border border-blue-500/40' :
+                              step.status === 'failed' ? 'bg-red-500/20 border border-red-500/40' :
+                                'bg-gray-500/20 border border-gray-500/40'
+                          }`}>
+                          {step.status === 'completed' ?
+                            <CheckCircle className="w-4 h-4 text-green-400" /> :
+                            step.status === 'running' ?
+                              <RefreshCw className="w-4 h-4 text-blue-400 animate-spin" /> :
+                              step.status === 'failed' ?
+                                <AlertTriangle className="w-4 h-4 text-red-400" /> :
+                                <span className="text-xs text-gray-400">{index + 1}</span>
+                          }
+                        </div>
+                        <div>
+                          <div className="text-white font-medium">{step.name}</div>
+                          <div className="text-xs text-gray-400">
+                            {step.status === 'completed' && typeof step.completedAt === 'string' ?
+                              `Completed ${new Date(step.completedAt).toLocaleTimeString()}` :
+                              step.status === 'running' ? 'In progress...' :
+                                step.status === 'failed' ? 'Failed' :
+                                  'Pending'
+                            }
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="text-sm text-white font-medium">{step.progress}%</div>
+                        {step.status === 'running' && (
+                          <div className="w-16 h-1 bg-white/10 rounded-full overflow-hidden mt-1">
+                            <div
+                              className="h-1 bg-blue-400 rounded-full transition-all duration-300"
+                              style={{ width: `${step.progress}%` }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Connected Channels */}
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white font-medium">Connected Channels</h3>
-                
+
                 {onChannelConfig && (
                   <HolographicButton
                     variant="outline"
@@ -368,7 +451,7 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
                   </HolographicButton>
                 )}
               </div>
-              
+
               <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
                 {Array.isArray(status.channels) && status.channels.length > 0 ? (
                   status.channels.map((channel, index) => (
@@ -387,7 +470,7 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center space-x-2">
                         {channel.url && (
                           <>
@@ -398,7 +481,7 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
                             >
                               <Copy className="w-4 h-4" />
                             </HolographicButton>
-                            
+
                             <HolographicButton
                               variant="ghost"
                               size="sm"
@@ -432,14 +515,14 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
             {/* System Status */}
             <div>
               <h3 className="text-white font-medium mb-4">System Status</h3>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
                   <div className="flex items-center space-x-2 mb-3">
                     <Server className="w-5 h-5 text-blue-400" />
                     <h4 className="text-white text-sm font-medium">Infrastructure</h4>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
@@ -448,7 +531,7 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
                       </div>
                       <span className="text-xs text-green-400">Healthy</span>
                     </div>
-                    
+
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <div className="w-2 h-2 rounded-full bg-green-400" />
@@ -456,7 +539,7 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
                       </div>
                       <span className="text-xs text-green-400">Operational</span>
                     </div>
-                    
+
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <div className="w-2 h-2 rounded-full bg-green-400" />
@@ -466,13 +549,13 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
                   <div className="flex items-center space-x-2 mb-3">
                     <Shield className="w-5 h-5 text-emerald-400" />
                     <h4 className="text-white text-sm font-medium">Security Status</h4>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
@@ -481,7 +564,7 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
                       </div>
                       <span className="text-xs text-green-400">Enabled</span>
                     </div>
-                    
+
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <div className="w-2 h-2 rounded-full bg-green-400" />
@@ -489,7 +572,7 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
                       </div>
                       <span className="text-xs text-green-400">Secured</span>
                     </div>
-                    
+
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <div className="w-2 h-2 rounded-full bg-green-400" />
@@ -502,10 +585,10 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
               </div>
             </div>
 
-            {/* Alert Log */}
+            {/* Activity Log */}
             <div>
               <h3 className="text-white font-medium mb-4">Activity Log</h3>
-              
+
               <div className="bg-white/5 border border-white/10 rounded-lg">
                 <div className="max-h-[200px] overflow-y-auto p-4">
                   {alertHistory.length === 0 && (
@@ -513,28 +596,26 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
                       <p className="text-gray-400">No activity recorded yet</p>
                     </div>
                   )}
-                  
+
                   {alertHistory.map((alert, index) => (
                     <div
                       key={index}
                       className="flex items-start space-x-3 mb-3 last:mb-0"
                     >
-                      <div className={`mt-0.5 ${
-                        alert.level === 'error' ? 'text-red-400' :
-                        alert.level === 'warning' ? 'text-yellow-400' :
-                        'text-blue-400'
-                      }`}>
+                      <div className={`mt-0.5 ${alert.level === 'error' ? 'text-red-400' :
+                          alert.level === 'warning' ? 'text-yellow-400' :
+                            'text-blue-400'
+                        }`}>
                         {alert.level === 'error' ? <AlertTriangle className="w-4 h-4" /> :
-                         alert.level === 'warning' ? <AlertTriangle className="w-4 h-4" /> :
-                         <Activity className="w-4 h-4" />}
+                          alert.level === 'warning' ? <AlertTriangle className="w-4 h-4" /> :
+                            <Activity className="w-4 h-4" />}
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
-                          <span className={`text-sm ${
-                            alert.level === 'error' ? 'text-red-300' :
-                            alert.level === 'warning' ? 'text-yellow-300' :
-                            'text-blue-300'
-                          }`}>
+                          <span className={`text-sm ${alert.level === 'error' ? 'text-red-300' :
+                              alert.level === 'warning' ? 'text-yellow-300' :
+                                'text-blue-300'
+                            }`}>
                             {alert.message}
                           </span>
                           <span className="text-xs text-gray-400">
@@ -563,7 +644,7 @@ export const DeploymentMonitor: React.FC<DeploymentMonitorProps> = ({
                   <Globe className="w-4 h-4 mr-2" />
                   View Guild Interface
                 </HolographicButton>
-                
+
                 <HolographicButton
                   onClick={() => {
                     if (onChannelConfig) {

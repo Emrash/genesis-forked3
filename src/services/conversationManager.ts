@@ -30,6 +30,7 @@ export interface Message {
   timestamp: Date;
   audio?: string;  // Base64 audio data
   video?: string;  // Video URL
+  metadata?: Record<string, any>; // Additional metadata (e.g., videoId, thumbnailUrl)
 }
 
 export interface Session {

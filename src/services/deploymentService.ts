@@ -46,12 +46,30 @@ export class DeploymentManager {
           servicesConnected: 0
         },
         steps: [
-          { id: 'provision', name: 'Provision Infrastructure', status: 'running', progress: 10 },
-          { id: 'deploy-agents', name: 'Deploy Agents', status: 'pending', progress: 0 },
-          { id: 'deploy-workflows', name: 'Deploy Workflows', status: 'pending', progress: 0 },
-          { id: 'deploy-services', name: 'Configure Services', status: 'pending', progress: 0 },
-          { id: 'test', name: 'Test Deployment', status: 'pending', progress: 0 },
-          { id: 'finalize', name: 'Finalize Deployment', status: 'pending', progress: 0 }
+          {
+            id: 'provision', name: 'Provision Infrastructure', status: 'running', progress: 10,
+            completedAt: ''
+          },
+          {
+            id: 'deploy-agents', name: 'Deploy Agents', status: 'pending', progress: 0,
+            completedAt: ''
+          },
+          {
+            id: 'deploy-workflows', name: 'Deploy Workflows', status: 'pending', progress: 0,
+            completedAt: ''
+          },
+          {
+            id: 'deploy-services', name: 'Configure Services', status: 'pending', progress: 0,
+            completedAt: ''
+          },
+          {
+            id: 'test', name: 'Test Deployment', status: 'pending', progress: 0,
+            completedAt: ''
+          },
+          {
+            id: 'finalize', name: 'Finalize Deployment', status: 'pending', progress: 0,
+            completedAt: ''
+          }
         ]
       };
       
@@ -453,6 +471,7 @@ export interface DeploymentStatus {
  * Deployment step
  */
 export interface DeploymentStep {
+  completedAt: string;
   id: string;
   name: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
@@ -692,7 +711,7 @@ Always think strategically, act efficiently, and communicate clearly.`,
       
       // For development, return a mock status
       return {
-        channels: true,
+        channels: [],
         id: deploymentId,
         status: 'deployed',
         progress: 100,
@@ -707,7 +726,33 @@ Always think strategically, act efficiently, and communicate clearly.`,
           agentsDeployed: 3,
           workflowsConfigured: 2,
           servicesConnected: 5
-        }
+        },
+        steps: [
+          {
+            id: 'provision', name: 'Provision Infrastructure', status: 'completed', progress: 100,
+            completedAt: ''
+          },
+          {
+            id: 'deploy-agents', name: 'Deploy Agents', status: 'completed', progress: 100,
+            completedAt: ''
+          },
+          {
+            id: 'deploy-workflows', name: 'Deploy Workflows', status: 'completed', progress: 100,
+            completedAt: ''
+          },
+          {
+            id: 'deploy-services', name: 'Configure Services', status: 'completed', progress: 100,
+            completedAt: ''
+          },
+          {
+            id: 'test', name: 'Test Deployment', status: 'completed', progress: 100,
+            completedAt: ''
+          },
+          {
+            id: 'finalize', name: 'Finalize Deployment', status: 'completed', progress: 100,
+            completedAt: ''
+          }
+        ]
       };
     }
   },
@@ -808,7 +853,7 @@ export interface DeploymentResult {
  * Deployment status
  */
 export interface DeploymentStatus {
-  channels: boolean;
+  channels?: any[];
   id: string;
   status: string;
   progress: number;

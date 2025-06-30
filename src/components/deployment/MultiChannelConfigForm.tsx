@@ -30,6 +30,10 @@ interface MultiChannelConfigFormProps {
   guildName: string;
 }
 
+interface EditableChannelConfig extends ChannelConfig {
+  index?: number;
+}
+
 export const MultiChannelConfigForm: React.FC<MultiChannelConfigFormProps> = ({
   initialChannels = [],
   onSave,
@@ -38,7 +42,7 @@ export const MultiChannelConfigForm: React.FC<MultiChannelConfigFormProps> = ({
   guildName
 }) => {
   const [channels, setChannels] = useState<ChannelConfig[]>(initialChannels);
-  const [currentChannel, setCurrentChannel] = useState<ChannelConfig | null>(null);
+  const [currentChannel, setCurrentChannel] = useState<EditableChannelConfig | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   

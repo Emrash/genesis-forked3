@@ -77,7 +77,7 @@ export function ActionConfig({ data, onUpdate, onDelete, nodeId, onClose }: Acti
 
       setFormData({
         ...formData,
-        curlCommand,
+        curlCommand: typeof curlCommand === 'string' ? curlCommand : (curlCommand?.command || '# Error: Invalid cURL response'),
         isGeneratingCurl: false
       });
     } catch (error) {
