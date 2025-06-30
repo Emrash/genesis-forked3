@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Play, CheckCircle, AlertCircle, ArrowRight, Brain, Zap, Clock, Settings, Cpu, Beaker, RefreshCw } from 'lucide-react';
+import { Play, CheckCircle, AlertCircle, ArrowRight, Brain, Zap, Clock, Settings, Cpu, Beaker, RefreshCw, MessageSquare } from 'lucide-react';
 import { useWizardStore } from '../../../stores/wizardStore';
 import { GlassCard } from '../../ui/GlassCard';
 import { EnhancedSimulationLab } from '../../simulation/EnhancedSimulationLab';
@@ -131,6 +131,29 @@ export const SimulationStep: React.FC = () => {
             </div>
             <div className="flex items-center space-x-2">
               <HolographicButton
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const url = document.getElementById('slackWebhookUrl') as HTMLInputElement;
+                  if (url && url.value) {
+                    // Test Slack webhook
+                    fetch(url.value, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        text: "🧪 *GenesisOS Test Message*\n\nThis is a test message from your simulation lab."
+                      })
+                    })
+                    .then(() => alert('Test message sent to Slack!'))
+                    .catch(err => alert('Error sending message: ' + err.message));
+                  } else {
+                    alert('Please enter a Slack webhook URL first.');
+                  }
+                }}
+              >
+                <MessageSquare className="w-4 h-4" />
+              </HolographicButton>
+              <HolographicButton
                 variant={showLabView ? "outline" : "primary"}
                 size="sm"
                 onClick={() => setShowLabView(!showLabView)}
@@ -181,14 +204,71 @@ export const SimulationStep: React.FC = () => {
                       <div className="text-lg font-medium text-white">{agents.length}</div>
                     </div>
                     <div className="bg-white/10 p-2 rounded">
-                      <div className="text-xs text-gray-300">Workflows</div>
+                      <div className="text-xs text-gray-300">Tools</div>
                       <div className="text-lg font-medium text-white">
-                        {blueprint?.suggested_structure.workflows.length || 0}
+                        {agents.reduce((acc, agent) => acc + (agent.tools_needed?.length || 0), 0)}
                       </div>
                     </div>
                     <div className="bg-white/10 p-2 rounded">
                       <div className="text-xs text-gray-300">Est. Time</div>
                       <div className="text-lg font-medium text-white">~60s</div>
+                    </div>
+                  </div>
+                  
+                  {/* Avatar Examples */}
+                  <div className="mt-6">
+                    <h4 className="text-white text-sm font-medium mb-3">Agent Avatars</h4>
+                    <div className="flex space-x-3 overflow-x-auto pb-2">
+                      {blueprint?.suggested_structure.agents.map((agent, index) => (
+                        <div key={index} className="flex flex-col items-center">
+                          <img 
+                            src={`https://images.pexels.com/photos/${3184338 + index * 100}/pexels-photo-3184338.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1`}
+                            alt={agent.name}
+                            className="w-16 h-16 object-cover rounded-lg mb-2 border border-white/20"
+                          />
+                          <span className="text-xs text-white whitespace-nowrap">{agent.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Simulation Options */}
+                  <div className="mt-6">
+                    <h4 className="text-white text-sm font-medium mb-3">Simulation Options</h4>
+                    <div className="space-y-3">
+                      <label className="flex justify-between items-center">
+                        <span className="text-white text-sm">Voice Integration:</span>
+                        <input 
+                          type="checkbox" 
+                          checked={simulationSettings.voiceEnabled}
+                          onChange={(e) => handleSettingChange('voiceEnabled', e.target.checked)}
+                          className="rounded bg-white/10 border-white/20 text-purple-500 focus:ring-purple-500"
+                        />
+                      </label>
+                      
+                      <label className="flex justify-between items-center">
+                        <span className="text-white text-sm">Slack Integration:</span>
+                        <input 
+                          type="checkbox" 
+                          checked={simulationSettings.slackEnabled}
+                          onChange={(e) => handleSettingChange('slackEnabled', e.target.checked)}
+                          className="rounded bg-white/10 border-white/20 text-purple-500 focus:ring-purple-500"
+                        />
+                      </label>
+                      
+                      {simulationSettings.slackEnabled && (
+                        <div>
+                          <label className="text-white text-xs mb-1 block">Slack Webhook URL:</label>
+                          <input 
+                            id="slackWebhookUrl"
+                            type="text" 
+                            value={simulationSettings.slackWebhookUrl}
+                            onChange={(e) => handleSettingChange('slackWebhookUrl', e.target.value)}
+                            placeholder="https://hooks.slack.com/services/..."
+                            className="w-full p-2 text-sm bg-white/10 border border-white/20 rounded-lg text-white"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

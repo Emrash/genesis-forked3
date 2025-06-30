@@ -155,7 +155,7 @@ function generateMockVideoResponse(text: string): VideoGenerationResult {
       status: "processing",
       estimated_completion: new Date(Date.now() + 1000 * 60 * 5).toISOString(),
       text: text,
-      thumbnail_url: "https://images.pexels.com/photos/3756679/pexels-photo-3756679.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+      thumbnail_url: `https://images.pexels.com/photos/${3756679 + Math.floor(Math.random() * 100)}/pexels-photo-3756679.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1`,
       metadata: {
         model: "advanced-personalized-avatar",
         processing_started: new Date().toISOString(),
@@ -206,30 +206,44 @@ function getMockAvatars(): Avatar[] {
   return [
     {
       id: 'avatar-1',
-      name: 'Professional Male',
+      name: 'Business Professional',
       thumbnailUrl: 'https://images.pexels.com/photos/2379005/pexels-photo-2379005.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=100',
       category: 'professional',
       gender: 'male'
     },
     {
       id: 'avatar-2',
-      name: 'Professional Female',
+      name: 'Corporate Specialist',
       thumbnailUrl: 'https://images.pexels.com/photos/2381069/pexels-photo-2381069.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=100',
       category: 'professional',
       gender: 'female'
     },
     {
       id: 'avatar-3',
-      name: 'Casual Male',
+      name: 'Creative Professional',
       thumbnailUrl: 'https://images.pexels.com/photos/775358/pexels-photo-775358.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=100',
       category: 'casual',
       gender: 'male'
     },
     {
       id: 'avatar-4',
-      name: 'Casual Female',
+      name: 'Tech Specialist',
       thumbnailUrl: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=100',
       category: 'casual',
+      gender: 'female'
+    },
+    {
+      id: 'avatar-5',
+      name: 'Data Analyst',
+      thumbnailUrl: 'https://images.pexels.com/photos/3184338/pexels-photo-3184338.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=100',
+      category: 'professional',
+      gender: 'male'
+    },
+    {
+      id: 'avatar-6',
+      name: 'Marketing Specialist',
+      thumbnailUrl: 'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=100',
+      category: 'professional',
       gender: 'female'
     }
   ];

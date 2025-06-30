@@ -252,7 +252,7 @@ export class SlackIntegration {
           channel: options.channel,
           ts: options.ts,
           text: options.text,
-          blocks: options.blocks
+          channel: channel.startsWith('#') ? channel : (channel === 'general' ? '#general' : `#${channel}`)
         })
       });
       
@@ -288,11 +288,11 @@ export class SlackIntegration {
     // Since we're using webhooks, we would register an endpoint to receive events
     
     // For this demo, we'll simulate incoming messages
-    const simulateIncomingMessage = async () => {
+    setTimeout(async () => {
       // Create a simulated incoming message
       const message: SlackMessage = {
         id: uuid(),
-        text: 'Hello from Slack!',
+        text: 'Hello from Slack! Ready for your GenesisOS demo.',
         channel: this.defaultChannel,
         timestamp: new Date().toISOString(),
         sender: 'U12345678'
@@ -300,7 +300,22 @@ export class SlackIntegration {
       
       // Notify listeners
       await this.notifyMessageListeners(message);
-    };
+    }, 3000);
+    
+    // And another simulated message after 15 seconds
+    setTimeout(async () => {
+      // Create a simulated incoming message
+      const message: SlackMessage = {
+        id: uuid(),
+        text: 'How can I help test your intelligent agent capabilities today?',
+        channel: this.defaultChannel,
+        timestamp: new Date().toISOString(),
+        sender: 'U12345678'
+      };
+      
+      // Notify listeners
+      await this.notifyMessageListeners(message);
+    }, 15000);
   }
 
   /**

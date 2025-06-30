@@ -52,6 +52,10 @@ export const AgentDebugConsole: React.FC<AgentDebugConsoleProps> = ({
   const [showTimestamps, setShowTimestamps] = useState(true);
   const [agentMemory, setAgentMemory] = useState<MemoryEntry[]>([]);
   const [isLoadingMemory, setIsLoadingMemory] = useState(false);
+  const [isConnected, setIsConnected] = useState(true);
+  const [isSlackEnabled, setIsSlackEnabled] = useState(false);
+  const [slackWebhookUrl, setSlackWebhookUrl] = useState('');
+  const [logLevel, setLogLevel] = useState<'error' | 'warning' | 'info' | 'verbose' | 'debug'>('info');
   
   const consoleEndRef = useRef<HTMLDivElement>(null);
   
@@ -61,6 +65,26 @@ export const AgentDebugConsole: React.FC<AgentDebugConsoleProps> = ({
     addSystemLog("Type 'help' for available commands");
   }, [agentId]);
   
+  // Check connection status
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        // Simulate API connection check
+        await new Promise(resolve => setTimeout(resolve, 500));
+        setIsConnected(true);
+      } catch (error) {
+        console.error('Connection check error:', error);
+        setIsConnected(false);
+      }
+    };
+    
+    checkConnection();
+    
+    // Check connection periodically
+    const interval = setInterval(checkConnection, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Scroll to bottom when logs update
   useEffect(() => {
     if (consoleEndRef.current) {
@@ -155,7 +179,18 @@ export const AgentDebugConsole: React.FC<AgentDebugConsoleProps> = ({
       await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
       
       // Simulate agent response
-      const response = `I've analyzed your request about "${text}". Based on my understanding, I believe you're asking about ${text.toLowerCase().includes('how') ? 'a process' : 'a concept'}. Could you provide more details so I can assist more effectively?`;
+      let response: string;
+      
+      // Generate more contextual responses for common queries
+      if (text.toLowerCase().includes('introduce') || text.toLowerCase().includes('who are you')) {
+        response = `I'm ${agentName}, an AI assistant designed to help with tasks related to ${agentName.includes('Analyst') ? 'data analysis and insights' : agentName.includes('Support') ? 'customer support and problem-solving' : agentName.includes('Sales') ? 'sales strategies and customer engagement' : 'general assistance'}. I'm equipped with tools to help you accomplish your goals efficiently. How can I assist you today?`;
+      } else if (text.toLowerCase().includes('help') || text.toLowerCase().includes('what can you do')) {
+        response = `I can assist you with a variety of tasks related to ${agentName.includes('Analyst') ? 'data processing, analytics, and reporting. I can analyze trends, generate insights, and create visualizations.' : agentName.includes('Support') ? 'customer inquiries, technical troubleshooting, and service optimization. I can handle customer tickets and provide resolution steps.' : agentName.includes('Sales') ? 'lead generation, sales strategies, and customer relationship management. I can analyze sales data and suggest optimization strategies.' : 'information retrieval, content creation, and problem-solving.'}`;
+      } else if (text.toLowerCase().includes('slack') || text.toLowerCase().includes('webhook')) {
+        response = `I can integrate with Slack through webhooks. To set this up, you'll need to provide a Slack webhook URL in the integration settings. Once configured, I can send notifications and updates directly to your Slack channels.`;
+      } else {
+        response = `I've analyzed your request about "${text}". Based on my understanding, I believe you're asking about ${text.toLowerCase().includes('how') ? 'a process' : 'a concept'}. Could you provide more details so I can assist more effectively?`;
+      }
       
       setLogs(prevLogs => [
         ...prevLogs,
@@ -167,18 +202,61 @@ export const AgentDebugConsole: React.FC<AgentDebugConsoleProps> = ({
       ]);
       
       // Simulate memory creation
+      const memoryType = text.toLowerCase().includes('who') || text.toLowerCase().includes('introduce') ? 'identity' :
+                         text.toLowerCase().includes('help') ? 'capability' : 'interaction';
+      
       setLogs(prevLogs => [
         ...prevLogs,
         {
           timestamp: new Date(),
           type: 'memory',
-          content: `Memory created: User asked about "${text.slice(0, 30)}${text.length > 30 ? '...' : ''}"`,
+          content: `Memory created: ${memoryType} - User asked about "${text.slice(0, 30)}${text.length > 30 ? '...' : ''}"`,
           metadata: {
             importance: 0.7,
-            type: 'interaction'
+            type: memoryType
           }
         }
       ]);
+      
+      // If Slack integration is enabled, send a notification
+      if (isSlackEnabled && slackWebhookUrl) {
+        try {
+          setLogs(prevLogs => [
+            ...prevLogs,
+            {
+              timestamp: new Date(),
+              type: 'system',
+              content: `Sending notification to Slack...`
+            }
+          ]);
+          
+          await fetch(slackWebhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text: `*Agent ${agentName} responded to:* "${text}"\n\n*Response:* ${response}`
+            })
+          });
+          
+          setLogs(prevLogs => [
+            ...prevLogs,
+            {
+              timestamp: new Date(),
+              type: 'system',
+              content: `✅ Slack notification sent successfully`
+            }
+          ]);
+        } catch (error: any) {
+          setLogs(prevLogs => [
+            ...prevLogs,
+            {
+              timestamp: new Date(),
+              type: 'error',
+              content: `Failed to send Slack notification: ${error.message}`
+            }
+          ]);
+        }
+      }
       
     } catch (error: any) {
       setLogs(prevLogs => [
@@ -573,6 +651,16 @@ export const AgentDebugConsole: React.FC<AgentDebugConsoleProps> = ({
                   {logs.length} entries
                 </div>
               </div>
+              
+              {/* Connection Status */}
+              <div className="flex justify-between mt-4 items-center border-t border-white/10 pt-4">
+                <div className="flex items-center">
+                  <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'} mr-2`}></div>
+                  <span className="text-xs text-gray-400">
+                    {isConnected ? 'Connected to agent service' : 'Disconnected'}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -683,36 +771,43 @@ export const AgentDebugConsole: React.FC<AgentDebugConsoleProps> = ({
               </div>
               
               <div className="p-3 bg-white/5 border border-white/10 rounded-lg">
-                <label className="flex items-center justify-between mb-2">
-                  <span className="text-gray-300 text-sm">Log Level</span>
-                  <select
-                    className="bg-black/40 border border-white/10 rounded px-2 py-1 text-sm text-white"
-                    defaultValue="verbose"
-                  >
-                    <option value="error">Error Only</option>
-                    <option value="warning">Warning+</option>
-                    <option value="info">Info+</option>
-                    <option value="verbose">Verbose</option>
-                    <option value="debug">Debug</option>
-                  </select>
-                </label>
-                <p className="text-xs text-gray-400">
-                  Control the detail level of log output
-                </p>
+                <label className="block text-sm text-gray-400 mb-2">Log Level</label>
+                <select
+                  value={logLevel}
+                  onChange={(e) => setLogLevel(e.target.value as any)}
+                  className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
+                >
+                  <option value="error">Error Only</option>
+                  <option value="warning">Warning+</option>
+                  <option value="info">Info+</option>
+                  <option value="verbose">Verbose</option>
+                  <option value="debug">Debug</option>
+                </select>
               </div>
               
               <div className="p-3 bg-white/5 border border-white/10 rounded-lg">
                 <label className="flex items-center justify-between mb-2">
-                  <span className="text-gray-300 text-sm">Auto-fetch Memory</span>
+                  <span className="text-sm text-gray-400">Slack Integration</span>
                   <input
                     type="checkbox"
-                    defaultChecked={false}
-                    className="rounded bg-white/10 border-white/20 text-purple-500 focus:ring-purple-500"
+                    checked={isSlackEnabled}
+                    onChange={(e) => setIsSlackEnabled(e.target.checked)}
+                    className="rounded bg-white/10 border-white/20 text-blue-500 focus:ring-blue-500"
                   />
                 </label>
-                <p className="text-xs text-gray-400">
-                  Automatically refresh agent memory when tab is opened
-                </p>
+                
+                {isSlackEnabled && (
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Webhook URL</label>
+                    <input
+                      type="text"
+                      value={slackWebhookUrl}
+                      onChange={(e) => setSlackWebhookUrl(e.target.value)}
+                      placeholder="https://hooks.slack.com/services/..."
+                      className="w-full p-2 bg-black/40 border border-white/10 rounded text-xs text-white"
+                    />
+                  </div>
+                )}
               </div>
               
               <div className="mt-6 pt-6 border-t border-white/10">
@@ -726,14 +821,40 @@ export const AgentDebugConsole: React.FC<AgentDebugConsoleProps> = ({
                     Clear Console
                   </HolographicButton>
                   
-                  <HolographicButton
-                    onClick={downloadLogs}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Export Logs
-                  </HolographicButton>
+                  <div className="flex space-x-2 flex-1">
+                    <HolographicButton
+                      onClick={downloadLogs}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Export Logs
+                    </HolographicButton>
+                    
+                    {isSlackEnabled && slackWebhookUrl && (
+                      <HolographicButton
+                        onClick={() => {
+                          // Send test message to Slack
+                          fetch(slackWebhookUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              text: `🧪 *Agent Debug Console* - Test message from ${agentName}`
+                            })
+                          })
+                          .then(() => addSystemLog("Test message sent to Slack"))
+                          .catch(err => addSystemLog(`Failed to send Slack message: ${err.message}`));
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                      >
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Test Slack
+                      </HolographicButton>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
